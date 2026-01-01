@@ -1,0 +1,32 @@
+<resources>
+    <string name="app_name">Whatsap Status</string>
+    <string name="status_saver">Status Saver</string>
+    <string name="language">Language</string>
+    <string name="search_language">Search language</string>
+    <string name="search">Search</string>
+    <string name="storage_permission_required">Storage Permission Required</string>
+    <string name="grant_permission">Grant Permission</string>
+    <string name="no_saved_statuses">No saved statuses yet</string>
+    <string name="no_statuses_available">No statuses available</string>
+    <string name="saved">Saved!</string>
+    <string name="failed_to_save">Failed to save.</string>
+    <string name="deleted">Deleted!</string>
+    <string name="failed_to_delete">Failed to delete.</string>
+    <string name="delete">Delete</string>
+    <string name="save">Save</string>
+    <string name="share">Share</string>
+    <string name="repost_to_whatsapp">Repost to WhatsApp</string>
+    <string name="share_via">Share via</string>
+    <string name="whatsapp_not_installed">WhatsApp is not installed.</string>
+    <string name="no_app_to_handle">No app to handle this.</string>
+    <string name="no_app_found_open">No app found to open this media.</string>
+    <string name="menu">Menu</string>
+    <string name="more_options">More options</string>
+    <string name="video">Video</string>
+    <string name="close">Close</string>
+    <string name="back">Back</string>
+    <string name="tab_all">All</string>
+    <string name="tab_images">Images</string>
+    <string name="tab_videos">Videos</string>
+    <string name="tab_saved">Saved</string>
+</resources>
