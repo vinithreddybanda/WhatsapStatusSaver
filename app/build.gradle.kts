@@ -3,7 +3,9 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
-
+kotlin {
+    jvmToolchain(17)
+}
 android {
     namespace = "com.vinithreddybanda.whatsapstatus"
     compileSdk {
@@ -30,13 +32,7 @@ android {
             )
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
+
     buildFeatures {
         compose = true
     }
