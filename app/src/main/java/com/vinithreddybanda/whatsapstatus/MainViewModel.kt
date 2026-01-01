@@ -11,8 +11,7 @@ import com.vinithreddybanda.whatsapstatus.model.Status
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
-import android.os.Environment
+
 
 sealed class StatusTab(val title: String) {
     object All : StatusTab("All")
@@ -38,10 +37,6 @@ class MainViewModel : ViewModel() {
 
     var selectedTab by mutableStateOf<StatusTab>(StatusTab.All)
         private set
-
-    val filteredStatuses by derivedStateOf {
-        getStatusesForTab(selectedTab)
-    }
 
     fun getStatusesForTab(tab: StatusTab): List<Status> {
         return when (tab) {
