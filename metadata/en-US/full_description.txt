@@ -1,0 +1,9 @@
+Whatsap Status is a simple and privacy-friendly tool that lets you view, save, and share WhatsApp statuses directly from your device.
+
+Features:
+- 💾 Save to Gallery: Download statuses you love permanently to your device storage.
+- 📤 Share Instantly: Repost or share statuses with friends on other apps.
+- 🎨 Modern UI: Clean, user-friendly interface with support for Dark Mode.
+- 🔒 Privacy Focused: Works locally on your device without uploading your data.
+
+Note: This app requires permission to access the .Statuses folder to function correctly. It is not affiliated other apps.

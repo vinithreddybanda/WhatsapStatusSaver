@@ -1,0 +1,5 @@
+Initial release of Whatsap Status!
+
+- View image and video statuses.
+- Save statuses to your device.
+- Dark mode support.
