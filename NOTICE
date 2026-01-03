@@ -1,0 +1,54 @@
+NOTICE
+
+WhatsApp Status Saver
+Copyright 2026 VINITH REDDY BANDA
+
+This product is licensed under the Apache License, Version 2.0 (the "License").
+You may obtain a copy of the License at: 
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+
+================================================================================
+
+DATA HANDLING AND PRIVACY
+
+This application accesses media files stored in the WhatsApp status directory
+on the local device file system. All operations are performed locally.  No user
+data is collected, transmitted, or stored on external servers.
+
+The application requires file system permissions to: 
+- Read WhatsApp status files from local storage
+- Save status files to the device Documents folder
+- Delete saved status files
+
+================================================================================
+
+TRADEMARK NOTICE
+
+WhatsApp is a registered trademark of WhatsApp LLC, a subsidiary of Meta
+Platforms, Inc. This application is an independent project and is not
+affiliated with, endorsed by, sponsored by, or otherwise associated with
+WhatsApp LLC or Meta Platforms, Inc.
+
+The WhatsApp name and logo are used solely for descriptive purposes to
+indicate compatibility and functionality. 
+
+================================================================================
+
+PATENT NOTICE
+
+This software does not make any patent claims. If you have knowledge of any
+patents that may cover the implementation of this software, please open an
+issue on the project repository. 
+
+================================================================================
+
+For questions, issues, or additional information, please visit:
+https://github.com/vinithreddybanda/WhatsapStatusSaver
+
+To report security vulnerabilities, please email:  vinithreddybanda@gmail.com
