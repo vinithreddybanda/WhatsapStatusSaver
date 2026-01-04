@@ -26,6 +26,16 @@ WhatsApp Status Saver allows users to access and manage WhatsApp status content 
 - Dark mode support
 - Material Design 3 interface
 
+
+## Screenshots
+
+<p align="center">
+  <img src="metadata/en-US/images/phoneScreenshots/1.png" width="200" alt="Screenshot 1"/>
+  <img src="metadata/en-US/images/phoneScreenshots/2.png" width="200" alt="Screenshot 2"/>
+  <img src="metadata/en-US/images/phoneScreenshots/3.png" width="200" alt="Screenshot 3"/>
+  <img src="metadata/en-US/images/phoneScreenshots/4.png" width="200" alt="Screenshot 4"/>
+</p>
+
 ## Technical Implementation
 
 ### Status Detection
