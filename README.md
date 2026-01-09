@@ -1,4 +1,4 @@
-# WhatsApp Status Saver
+# WhatsApStatusSaver
 
 An Android application for viewing, saving, and sharing WhatsApp status media files.
 
