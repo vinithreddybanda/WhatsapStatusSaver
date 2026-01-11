@@ -634,7 +634,7 @@ fun StatusCard(
 }
 
 fun formatTimestamp(timestamp: Long): String {
-    return dateFormatThreadLocal.get()!!.format(Date(timestamp))
+    return dateFormatThreadLocal.get()?.format(Date(timestamp)) ?: ""
 }
 
 fun openFile(context: Context, file: File) {
