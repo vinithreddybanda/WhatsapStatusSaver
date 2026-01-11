@@ -106,6 +106,11 @@ import java.util.Date
 import java.util.Locale
 import kotlin.random.Random
 
+// Thread-safe SimpleDateFormat cache to avoid creating new instances on each timestamp format call
+private val dateFormatThreadLocal = ThreadLocal.withInitial {
+    SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
+}
+
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -181,8 +186,8 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
     }
 
     // Pager State
-    // Remember tabs list to avoid recreation
-    val tabs = remember { listOf(StatusTab.All, StatusTab.Images, StatusTab.Videos, StatusTab.Saved) }
+    // Static tabs list - no need for remember as it's already constant
+    val tabs = listOf(StatusTab.All, StatusTab.Images, StatusTab.Videos, StatusTab.Saved)
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { tabs.size })
 
     // Sync Pager with ViewModel Tab Selection
@@ -629,8 +634,7 @@ fun StatusCard(
 }
 
 fun formatTimestamp(timestamp: Long): String {
-    val sdf = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
-    return sdf.format(Date(timestamp))
+    return dateFormatThreadLocal.get()!!.format(Date(timestamp))
 }
 
 fun openFile(context: Context, file: File) {
