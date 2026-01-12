@@ -10,7 +10,6 @@ kotlin {
 }
 android {
     namespace = "com.vinithreddybanda.whatsapstatus"
-    // Corrected line:
     compileSdk = 36
 
     defaultConfig {
