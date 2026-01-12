@@ -1,9 +1,5 @@
 
 
-// Comment out or delete the following two lines
-// import androidx.glance.appwidget.compose
-// import androidx.navigation.compose.navigation
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
