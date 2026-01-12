@@ -1,3 +1,5 @@
+
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -8,9 +10,7 @@ kotlin {
 }
 android {
     namespace = "com.vinithreddybanda.whatsapstatus"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.vinithreddybanda.whatsapstatus"

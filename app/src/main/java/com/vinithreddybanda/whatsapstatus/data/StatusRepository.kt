@@ -33,29 +33,34 @@ class StatusRepository {
         Environment.getExternalStorageDirectory(), "Documents/StatusSaver"
     )
 
+    // Supported extensions for filtering
+    private val supportedExtensions = setOf("jpg", "gif", "mp4")
+
+    // Extension property for file type checking
+    private val File.isSupportedMedia: Boolean
+        get() = extension.lowercase() in supportedExtensions
+
+    private val File.isVideoFile: Boolean
+        get() = extension.equals("mp4", ignoreCase = true)
+
     suspend fun getStatuses(): List<Status> = withContext(Dispatchers.IO) {
-        val statusList = ArrayList<Status>()
         val uniquePaths = HashSet<String>() // To avoid duplicates if paths overlap or symlink
+        val statusList = mutableListOf<Status>()
 
         for (path in targetPaths) {
             // Log.d("StatusRepo", "Checking path: ${path.absolutePath}, exists: ${path.exists()}, isDir: ${path.isDirectory}")
             if (path.exists() && path.isDirectory) {
-                val files = path.listFiles()
-                if (files != null) {
-                    for (file in files) {
-                        if (file.exists() && !uniquePaths.contains(file.absolutePath) &&
-                            (file.name.endsWith(".jpg") || file.name.endsWith(".gif") || file.name.endsWith(".mp4"))) {
-
-                            statusList.add(
-                                Status(
-                                    file = file,
-                                    title = file.name,
-                                    path = file.absolutePath,
-                                    isVideo = file.name.endsWith(".mp4")
-                                )
+                path.listFiles()?.forEach { file ->
+                    // Use HashSet.add() return value - returns true if element was added (wasn't present before)
+                    if (file.isSupportedMedia && uniquePaths.add(file.absolutePath)) {
+                        statusList.add(
+                            Status(
+                                file = file,
+                                title = file.name,
+                                path = file.absolutePath,
+                                isVideo = file.isVideoFile
                             )
-                            uniquePaths.add(file.absolutePath)
-                        }
+                        )
                     }
                 }
             }
@@ -65,25 +70,22 @@ class StatusRepository {
     }
 
     suspend fun getSavedStatuses(): List<Status> = withContext(Dispatchers.IO) {
-        val statusList = ArrayList<Status>()
-        if (savedPath.exists() && savedPath.isDirectory) {
-             val files = savedPath.listFiles()
-             if (files != null) {
-                 for (file in files) {
-                      if (file.name.endsWith(".jpg") || file.name.endsWith(".gif") || file.name.endsWith(".mp4")) {
-                        statusList.add(
-                            Status(
-                                file = file,
-                                title = file.name,
-                                path = file.absolutePath,
-                                isVideo = file.name.endsWith(".mp4")
-                            )
-                        )
-                    }
-                 }
-             }
+        if (!savedPath.exists() || !savedPath.isDirectory) {
+            return@withContext emptyList()
         }
-        statusList.sortedByDescending { it.file.lastModified() }
+
+        savedPath.listFiles()
+            ?.filter { it.isSupportedMedia }
+            ?.map { file ->
+                Status(
+                    file = file,
+                    title = file.name,
+                    path = file.absolutePath,
+                    isVideo = file.isVideoFile
+                )
+            }
+            ?.sortedByDescending { it.file.lastModified() }
+            ?: emptyList()
     }
 
     suspend fun saveStatus(status: Status): Boolean = withContext(Dispatchers.IO) {
