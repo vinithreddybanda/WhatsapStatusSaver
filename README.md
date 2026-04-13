@@ -6,26 +6,11 @@ An Android application for viewing, saving, and sharing WhatsApp status media fi
 [![Kotlin](https://img.shields.io/badge/Kotlin-100%25-purple.svg)](https://kotlinlang.org/)
 [![Platform](https://img.shields.io/badge/Platform-Android-green.svg)](https://www.android.com/)
 
-## Sponsors
 
-If you find this project useful, please consider sponsoring: 
-
-[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-red.svg)](https://github.com/sponsors/vinithreddybanda)
 
 ## Overview
 
 WhatsApp Status Saver allows users to access and manage WhatsApp status content stored locally on their Android devices. The application operates entirely offline without transmitting data to external servers.
-
-## Features
-
-- View all WhatsApp image and video statuses
-- Save status files to device storage (Documents/StatusSaver)
-- Share status content with other applications
-- Repost statuses directly to WhatsApp
-- Filter content by type (All, Images, Videos, Saved)
-- Dark mode support
-- Material Design 3 interface
-
 
 ## Screenshots
 
@@ -35,27 +20,6 @@ WhatsApp Status Saver allows users to access and manage WhatsApp status content 
   <img src="metadata/en-US/images/phoneScreenshots/3.png" width="200" alt="Screenshot 3"/>
   <img src="metadata/en-US/images/phoneScreenshots/4.png" width="200" alt="Screenshot 4"/>
 </p>
-
-## Technical Implementation
-
-### Status Detection
-
-The application scans multiple potential WhatsApp status directories: 
-
-- `Android/media/com.whatsapp/WhatsApp/Media/. Statuses` (Android 11+)
-- `WhatsApp/Media/.Statuses` (Android 10 and below)
-- `Android/media/com.whatsapp.w4b/WhatsApp Business/Media/.Statuses`
-- `WhatsApp Business/Media/.Statuses`
-
-### File Processing
-
-The app processes media files by:
-
-- Filtering files by extension (`.jpg`, `.gif`, `.mp4`)
-- Reading file metadata (last modified timestamp)
-- Sorting by modification date (newest first)
-- Generating video thumbnails using frame extraction
-- Preventing duplicate entries using path-based deduplication
 
 ### Permissions
 
@@ -98,26 +62,6 @@ cd WhatsapStatusSaver
 
 The APK can be built using Android Studio or Gradle command line tools.  The application requires Android API level as specified in the gradle configuration.
 
-## Code Architecture
-
-### Repository Layer
-- Handles file system access and I/O operations
-- Executes operations on IO dispatcher
-- Manages status file discovery and caching
-- Implements save/delete functionality
-
-### ViewModel Layer
-- Maintains UI state using Compose state management
-- Provides derived states for filtered lists
-- Coordinates background operations
-- Manages tab selection and data refresh
-
-### UI Layer
-- Compose-based declarative UI
-- Staggered grid layout for status display
-- Bottom sheet for status actions
-- Skeleton loading states
-- Permission handling flows
 
 ## License
 
@@ -140,15 +84,6 @@ This application is not affiliated with, endorsed by, or sponsored by WhatsApp L
 ## Contributing
 
 Issues and pull requests are welcome. Please ensure all contributions adhere to the existing code style and architecture patterns.
-
-## Sponsorship
-
-If you find this project valuable and would like to support its development, consider becoming a sponsor:
-
-- [GitHub Sponsors](https://github.com/sponsors/vinithreddybanda)
-- [Buy Me a KO-FI](https://ko-fi.com/dexandblue)
-
-Your support helps maintain and improve this project. 
 
 ## Support
 
