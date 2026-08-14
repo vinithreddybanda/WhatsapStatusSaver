@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
 }
 android {
     namespace = "com.vinithreddybanda.whatsapstatus"
