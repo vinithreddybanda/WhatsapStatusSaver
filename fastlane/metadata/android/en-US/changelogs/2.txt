@@ -1,0 +1,5 @@
+Version 1.1
+
+- Improved app stability and status loading.
+- Updated dependencies and build configuration.
+- Changed App Icon

@@ -1,0 +1,4 @@
+Initial release of Status Saver! 
+
+- View image and video statuses.
+- Save statuses to your device from WhatsApp.
