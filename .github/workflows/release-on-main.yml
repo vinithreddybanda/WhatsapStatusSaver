@@ -1,0 +1,153 @@
+name: Release On Main
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next semantic version and versionCode
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          latest_tag=$(git tag --list "v*" --sort=-v:refname | head -n1 || true)
+          if [[ -z "${latest_tag}" ]]; then
+            base_version="0.0.0"
+            range=""
+          else
+            base_version="${latest_tag#v}"
+            range="${latest_tag}..HEAD"
+          fi
+
+          if [[ -n "${range}" ]]; then
+            commit_text=$(git log --format=%s%n%b ${range})
+          else
+            commit_text=$(git log --format=%s%n%b)
+          fi
+
+          bump="patch"
+          if echo "${commit_text}" | grep -Eqi "BREAKING CHANGE|!:"; then
+            bump="major"
+          elif echo "${commit_text}" | grep -Eqi "feat(\(|:)"; then
+            bump="minor"
+          fi
+
+          IFS='.' read -r major minor patch <<< "${base_version}"
+          major=${major:-0}
+          minor=${minor:-0}
+          patch=${patch:-0}
+
+          case "${bump}" in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            *)
+              patch=$((patch + 1))
+              ;;
+          esac
+
+          version_name="${major}.${minor}.${patch}"
+          version_code=$(git rev-list --count HEAD)
+
+          echo "version_name=${version_name}" >> "$GITHUB_OUTPUT"
+          echo "version_code=${version_code}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${version_name}" >> "$GITHUB_OUTPUT"
+
+      - name: Create release tag
+        run: |
+          set -euo pipefail
+          if git rev-parse "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            echo "Tag already exists: ${{ steps.version.outputs.tag }}"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.version.outputs.tag }}" -m "Release ${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install required Android SDK packages
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Create release keystore file
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for key in RELEASE_KEYSTORE_BASE64 RELEASE_STORE_PASSWORD RELEASE_KEY_ALIAS RELEASE_KEY_PASSWORD; do
+            if [[ -z "${!key}" ]]; then
+              echo "Missing required secret: ${key}" >&2
+              exit 1
+            fi
+          done
+          echo "${RELEASE_KEYSTORE_BASE64}" | base64 --decode > "$GITHUB_WORKSPACE/release-keystore.jks"
+
+      - name: Build production release APKs
+        env:
+          SIGNING_STORE_FILE: ${{ github.workspace }}/release-keystore.jks
+          SIGNING_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          ./gradlew --no-daemon -Dorg.gradle.java.home="$JAVA_HOME" \
+            -PCI_VERSION_NAME="${{ steps.version.outputs.version_name }}" \
+            -PCI_VERSION_CODE="${{ steps.version.outputs.version_code }}" \
+            clean assembleGithubRelease assembleFdroidRelease
+
+      - name: Generate checksums
+        run: |
+          sha256sum app/build/outputs/apk/github/release/*.apk > SHA256SUMS-github.txt
+          sha256sum app/build/outputs/apk/fdroid/release/*.apk > SHA256SUMS-fdroid.txt
+
+      - name: Create GitHub Release and attach APKs
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          generate_release_notes: true
+          files: |
+            app/build/outputs/apk/github/release/*.apk
+            app/build/outputs/apk/fdroid/release/*.apk
+            SHA256SUMS-github.txt
+            SHA256SUMS-fdroid.txt
+
+      - name: Remove temporary release keystore
+        if: always()
+        run: rm -f "$GITHUB_WORKSPACE/release-keystore.jks"

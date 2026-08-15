@@ -2,6 +2,9 @@ name: Build Android APK
 
 on:
   push:
+    branches-ignore:
+      - main
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -33,12 +36,22 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      - name: Build debug APK
-        run: ./gradlew --no-daemon -Dorg.gradle.java.home="$JAVA_HOME" clean assembleDebug
+      - name: Build GitHub debug APK
+        run: ./gradlew --no-daemon -Dorg.gradle.java.home="$JAVA_HOME" clean assembleGithubDebug
 
-      - name: Upload APK artifact
+      - name: Build F-Droid release APK
+        run: ./gradlew --no-daemon -Dorg.gradle.java.home="$JAVA_HOME" assembleFdroidRelease
+
+      - name: Upload GitHub debug APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: app-github-debug-dev-apk
+          path: app/build/outputs/apk/github/debug/*.apk
+          if-no-files-found: error
+
+      - name: Upload F-Droid release APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-fdroid-release-apk
+          path: app/build/outputs/apk/fdroid/release/*.apk
           if-no-files-found: error
