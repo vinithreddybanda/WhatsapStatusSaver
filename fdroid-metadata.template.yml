@@ -1,0 +1,30 @@
+Categories:
+  - Tools
+License: Apache-2.0
+AuthorName: VINITH REDDY BANDA
+WebSite: https://github.com/vinithreddybanda/WhatsapStatusSaver
+SourceCode: https://github.com/vinithreddybanda/WhatsapStatusSaver
+IssueTracker: https://github.com/vinithreddybanda/WhatsapStatusSaver/issues
+Changelog: https://github.com/vinithreddybanda/WhatsapStatusSaver/releases
+
+AutoName: WhatsApStatusSaver
+Summary: Save and manage WhatsApp status media files offline.
+Description: |-
+  WhatsApStatusSaver allows browsing, saving, and sharing WhatsApp status media.
+  This F-Droid package is built from source and distributed through F-Droid.
+
+RepoType: git
+Repo: https://github.com/vinithreddybanda/WhatsapStatusSaver.git
+
+Builds:
+  - versionName: 1.1.0
+    versionCode: 100
+    commit: v1.1.0
+    subdir: app
+    gradle:
+      - fdroid
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags ^v\d+\.\d+\.\d+$
+CurrentVersion: 1.1.0
+CurrentVersionCode: 100

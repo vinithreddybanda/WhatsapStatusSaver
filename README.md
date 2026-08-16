@@ -62,6 +62,57 @@ cd WhatsapStatusSaver
 
 The APK can be built using Android Studio or Gradle command line tools.  The application requires Android API level as specified in the gradle configuration.
 
+## GitHub Actions APK Signing
+
+The workflows below provide a production-grade automated pipeline:
+
+- .github/workflows/build-apk.yml
+  - Runs on pushes (except main) and pull requests.
+  - Builds CI artifacts for validation.
+- .github/workflows/release-on-main.yml
+  - Runs automatically on every push to main.
+  - Auto-calculates semantic version from commit messages.
+  - Auto-creates git tag and GitHub Release.
+  - Auto-attaches signed GitHub APK, F-Droid APK, and SHA256 files.
+
+Distribution channels from a single main branch:
+
+- GitHub flavor package: com.vinithreddybanda.whatsapstatus
+- F-Droid flavor package: com.vinithreddybanda.whatsapstatus
+
+Because package name is the same, users should stay on one distribution channel (GitHub or F-Droid). Android will block cross-channel updates when signer differs.
+
+Security notes:
+
+- The release keystore is never stored in the repository.
+- The keystore is reconstructed only inside the CI runner and removed at the end of the job.
+- Debug builds use a .dev applicationId suffix to avoid package conflicts with production installs.
+
+Required GitHub Secrets for production release workflow:
+
+- RELEASE_KEYSTORE_BASE64
+- RELEASE_STORE_PASSWORD
+- RELEASE_KEY_ALIAS
+- RELEASE_KEY_PASSWORD
+
+Version automation rules in release-on-main.yml:
+
+- major bump when commit contains BREAKING CHANGE or !:
+- minor bump when commit contains feat:
+- patch bump for all other commits
+- versionCode uses total git commit count to keep values monotonic
+
+Local build examples:
+
+- GitHub signed release (when signing env vars are set): ./gradlew assembleGithubRelease
+- GitHub debug: ./gradlew assembleGithubDebug
+- F-Droid release: ./gradlew assembleFdroidRelease
+
+## F-Droid Metadata (GitLab)
+
+F-Droid metadata is maintained in the F-Droid data repository (GitLab), not in this repository.
+Use the template file fdroid-metadata.template.yml from this project when preparing your app entry for F-Droid.
+
 
 ## License
 
