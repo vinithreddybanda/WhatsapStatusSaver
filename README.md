@@ -1,12 +1,14 @@
 # WhatsApStatusSaver
 
-An Android application for viewing, saving, and sharing WhatsApp status media files.
-
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Kotlin](https://img.shields.io/badge/Kotlin-100%25-purple.svg)](https://kotlinlang.org/)
 [![Platform](https://img.shields.io/badge/Platform-Android-green.svg)](https://www.android.com/)
 
+An Android application for viewing, saving, and sharing WhatsApp status media files.
 
+[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
+     alt="Get it on F-Droid"
+     height="80">](https://f-droid.org/packages/com.vinithreddybanda.whatsapstatus/)
 
 ## Overview
 
