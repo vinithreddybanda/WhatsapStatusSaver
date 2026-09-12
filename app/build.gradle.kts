@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
@@ -34,12 +33,12 @@ val ciVersionCode = providers.gradleProperty("CI_VERSION_CODE")
 
 android {
     namespace = "com.vinithreddybanda.whatsapstatus"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.vinithreddybanda.whatsapstatus"
         minSdk = 24
-        targetSdk = 37
+        targetSdk = 36
         versionCode = ciVersionCode ?: 2
         versionName = ciVersionName ?: "1.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -64,13 +63,6 @@ android {
             if (hasCustomSigning) {
                 signingConfig = signingConfigs.getByName("release")
             }
-        }
-
-        create("fdroid") {
-            dimension = "distribution"
-            versionNameSuffix = "-fdroid"
-            resValue("string", "app_name", "WhatsApStatusSaver F-Droid")
-            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
