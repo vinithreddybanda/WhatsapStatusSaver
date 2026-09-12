@@ -33,7 +33,7 @@ val ciVersionCode = providers.gradleProperty("CI_VERSION_CODE")
 
 android {
     namespace = "com.vinithreddybanda.whatsapstatus"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.vinithreddybanda.whatsapstatus"
