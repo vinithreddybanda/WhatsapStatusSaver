@@ -23,13 +23,12 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
@@ -59,7 +58,6 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -214,18 +212,11 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
     }
 
     val tabs = listOf(StatusTab.All, StatusTab.Images, StatusTab.Videos, StatusTab.Saved)
-    val pagerState = rememberPagerState(initialPage = 0, pageCount = { tabs.size })
-
-    LaunchedEffect(viewModel.selectedTab) {
-        val index = tabs.indexOf(viewModel.selectedTab)
-        if (index >= 0 && pagerState.currentPage != index) {
-            pagerState.animateScrollToPage(index)
-        }
-    }
+    val pagerState = rememberPagerState(initialPage = tabs.indexOf(viewModel.selectedTab), pageCount = { tabs.size })
 
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.currentPage }.collect { page ->
-            viewModel.onTabSelected(tabs[page])
+            if (page in tabs.indices) viewModel.onTabSelected(tabs[page])
         }
     }
 
@@ -256,8 +247,7 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
                     state = pagerState,
                     modifier = Modifier.weight(1f),
                     beyondViewportPageCount = 1,
-                    key = { tabs[it].title },
-                    flingBehavior = PagerDefaults.flingBehavior(state = pagerState)
+                    key = { tabs[it].title }
                 ) { page ->
                     val tab = tabs[page]
                     val statuses = viewModel.getStatusesForTab(tab)
@@ -280,7 +270,6 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
                                 }
                             }
                         }
-
                         !viewModel.isFetching -> {
                             EmptyGlassState(
                                 text = if (tab == StatusTab.Saved) {
@@ -329,21 +318,13 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
                     },
                     onSave = {
                         viewModel.saveStatus(status) { success ->
-                            Toast.makeText(
-                                context,
-                                context.getString(if (success) R.string.saved else R.string.failed_to_save),
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            Toast.makeText(context, context.getString(if (success) R.string.saved else R.string.failed_to_save), Toast.LENGTH_SHORT).show()
                             scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null }
                         }
                     },
                     onDelete = {
                         viewModel.deleteStatus(status) { success ->
-                            Toast.makeText(
-                                context,
-                                context.getString(if (success) R.string.deleted else R.string.failed_to_delete),
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            Toast.makeText(context, context.getString(if (success) R.string.deleted else R.string.failed_to_delete), Toast.LENGTH_SHORT).show()
                             scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null }
                         }
                     },
@@ -363,12 +344,13 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
 
 @Composable
 private fun LiquidBackdrop(motion: MotionVector) {
-    val phase = rememberInfiniteTransition(label = "liquid_background").animateFloat(
+    val transition = rememberInfiniteTransition(label = "liquid_background")
+    val phase by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(12000, easing = FastOutSlowInEasing)),
         label = "phase"
-    ).value
+    )
     val offsetX = motion.x * 2.4f + phase * 30f
     val offsetY = motion.y * 1.8f + (1f - phase) * 22f
 
@@ -384,8 +366,7 @@ private fun LiquidBackdrop(motion: MotionVector) {
                     Brush.radialGradient(
                         listOf(Color(0xFF4B8DFF).copy(alpha = 0.20f), Color.Transparent),
                         radius = 480f
-                    ),
-                    CircleShape
+                    ), CircleShape
                 )
                 .blur(42.dp)
         )
@@ -401,8 +382,7 @@ private fun LiquidBackdrop(motion: MotionVector) {
                     Brush.radialGradient(
                         listOf(Color(0xFFFF4FA3).copy(alpha = 0.15f), Color.Transparent),
                         radius = 420f
-                    ),
-                    CircleShape
+                    ), CircleShape
                 )
                 .blur(50.dp)
         )
@@ -415,8 +395,7 @@ private fun LiquidBackdrop(motion: MotionVector) {
                     Brush.radialGradient(
                         listOf(Color(0xFF6C63FF).copy(alpha = 0.11f), Color.Transparent),
                         radius = 360f
-                    ),
-                    CircleShape
+                    ), CircleShape
                 )
                 .blur(48.dp)
         )
@@ -435,7 +414,7 @@ private fun HeaderGlass(motion: MotionVector) {
         Modifier
             .fillMaxWidth()
             .padding(horizontal = 18.dp, vertical = 12.dp)
-            .graphicsLayer { translationY = titleLift.value * density },
+            .graphicsLayer { translationY = titleLift.toPx() },
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {
@@ -528,10 +507,7 @@ private fun StatusCard(
     val pressed by interactions.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (pressed) 0.965f else 1f,
-        animationSpec = spring(
-            dampingRatio = 0.72f,
-            stiffness = Spring.StiffnessMediumLow
-        ),
+        animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow),
         label = "card_scale"
     )
 
@@ -570,23 +546,14 @@ private fun StatusCard(
                         .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        Icons.Default.PlayArrow,
-                        contentDescription = stringResource(R.string.video),
-                        tint = Color.White,
-                        modifier = Modifier.size(30.dp)
-                    )
+                    Icon(Icons.Default.PlayArrow, contentDescription = stringResource(R.string.video), tint = Color.White, modifier = Modifier.size(30.dp))
                 }
             }
             IconButton(
                 onClick = onMenuClick,
                 modifier = Modifier.align(Alignment.TopEnd).padding(6.dp)
             ) {
-                Icon(
-                    Icons.Default.MoreHoriz,
-                    contentDescription = stringResource(R.string.more_options),
-                    tint = Color.White
-                )
+                Icon(Icons.Default.MoreHoriz, contentDescription = stringResource(R.string.more_options), tint = Color.White)
             }
             Column(
                 Modifier
@@ -595,18 +562,8 @@ private fun StatusCard(
                     .background(Color.Black.copy(alpha = 0.32f))
                     .padding(12.dp)
             ) {
-                Text(
-                    text = status.title,
-                    color = Color.White,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1
-                )
-                Text(
-                    text = formatTimestamp(status.timestamp),
-                    color = Color.White.copy(alpha = 0.72f),
-                    fontSize = 9.sp
-                )
+                Text(text = status.title, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text(text = formatTimestamp(status.timestamp), color = Color.White.copy(alpha = 0.72f), fontSize = 9.sp)
             }
         }
     }
@@ -614,17 +571,9 @@ private fun StatusCard(
 
 @Composable
 private fun EmptyGlassState(text: String) {
-    Box(
-        Modifier
-            .fillMaxSize()
-            .padding(28.dp),
-        contentAlignment = Alignment.Center
-    ) {
+    Box(Modifier.fillMaxSize().padding(28.dp), contentAlignment = Alignment.Center) {
         GlassSurface(Modifier.fillMaxWidth().padding(10.dp)) {
-            Column(
-                Modifier.fillMaxWidth().padding(28.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+            Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             }
         }
@@ -633,28 +582,12 @@ private fun EmptyGlassState(text: String) {
 
 @Composable
 private fun PermissionGlassState(onClick: () -> Unit) {
-    Box(
-        Modifier
-            .fillMaxSize()
-            .padding(28.dp),
-        contentAlignment = Alignment.Center
-    ) {
+    Box(Modifier.fillMaxSize().padding(28.dp), contentAlignment = Alignment.Center) {
         GlassSurface(Modifier.fillMaxWidth().padding(12.dp)) {
-            Column(
-                Modifier.fillMaxWidth().padding(28.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    stringResource(R.string.storage_permission_required),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 17.sp
-                )
+            Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(stringResource(R.string.storage_permission_required), fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 Spacer(Modifier.height(8.dp))
-                Text(
-                    stringResource(R.string.storage_permission_description),
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text(stringResource(R.string.storage_permission_description), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(18.dp))
                 LiquidButton(stringResource(R.string.grant_permission), onClick)
             }
@@ -677,56 +610,27 @@ private fun LiquidActionSheet(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(status.title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text(
-                        formatTimestamp(status.timestamp),
-                        fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Text(formatTimestamp(status.timestamp), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                IconButton(onClick = onClose) {
-                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
-                }
+                IconButton(onClick = onClose) { Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close)) }
             }
             Spacer(Modifier.height(10.dp))
-            LiquidButton(
-                if (isSavedTab) stringResource(R.string.delete) else stringResource(R.string.save),
-                if (isSavedTab) onDelete else onSave
-            )
+            LiquidButton(if (isSavedTab) stringResource(R.string.delete) else stringResource(R.string.save), if (isSavedTab) onDelete else onSave)
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                ActionChip(
-                    Icons.Outlined.Share,
-                    stringResource(R.string.share),
-                    onShare,
-                    Modifier.weight(1f)
-                )
-                ActionChip(
-                    Icons.AutoMirrored.Outlined.Send,
-                    stringResource(R.string.repost_to_whatsapp),
-                    onRepost,
-                    Modifier.weight(1f)
-                )
+                ActionChip(Icons.Outlined.Share, stringResource(R.string.share), onShare, Modifier.weight(1f))
+                ActionChip(Icons.AutoMirrored.Outlined.Send, stringResource(R.string.repost_to_whatsapp), onRepost, Modifier.weight(1f))
             }
             if (isSavedTab) {
                 Spacer(Modifier.height(10.dp))
-                ActionChip(
-                    Icons.Outlined.Delete,
-                    stringResource(R.string.delete),
-                    onDelete,
-                    Modifier.fillMaxWidth()
-                )
+                ActionChip(Icons.Outlined.Delete, stringResource(R.string.delete), onDelete, Modifier.fillMaxWidth())
             }
         }
     }
 }
 
 @Composable
-private fun ActionChip(
-    icon: ImageVector,
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+private fun ActionChip(icon: ImageVector, text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier
             .clip(RoundedCornerShape(16.dp))
@@ -736,10 +640,7 @@ private fun ActionChip(
             .padding(horizontal = 14.dp, vertical = 11.dp),
         contentAlignment = Alignment.Center
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(7.dp)
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
             Text(text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         }
@@ -747,10 +648,7 @@ private fun ActionChip(
 }
 
 @Composable
-private fun GlassSurface(
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
-) {
+private fun GlassSurface(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Box(
         modifier
             .clip(RoundedCornerShape(28.dp))
@@ -764,9 +662,7 @@ private fun GlassSurface(
                 )
             )
             .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(28.dp))
-    ) {
-        content()
-    }
+    ) { content() }
 }
 
 @Composable
@@ -775,18 +671,16 @@ private fun LiquidButton(text: String, onClick: () -> Unit) {
     val pressed by interactions.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (pressed) 0.95f else 1f,
-        animationSpec = spring(
-            dampingRatio = 0.65f,
-            stiffness = Spring.StiffnessMediumLow
-        ),
+        animationSpec = spring(dampingRatio = 0.65f, stiffness = Spring.StiffnessMediumLow),
         label = "button_scale"
     )
-    val phase = rememberInfiniteTransition(label = "button_phase").animateFloat(
+    val phaseTransition = rememberInfiniteTransition(label = "button_phase")
+    val phase by phaseTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(5000, easing = FastOutSlowInEasing)),
         label = "button_phase_value"
-    ).value
+    )
 
     Box(
         Modifier
@@ -797,12 +691,7 @@ private fun LiquidButton(text: String, onClick: () -> Unit) {
             .clip(RoundedCornerShape(18.dp))
             .background(
                 Brush.linearGradient(
-                    colors = listOf(
-                        Color(0xFF7B5CFF),
-                        Color(0xFFEA68B8),
-                        Color(0xFF4CCBFF),
-                        Color(0xFF7B5CFF)
-                    ),
+                    colors = listOf(Color(0xFF7B5CFF), Color(0xFFEA68B8), Color(0xFF4CCBFF), Color(0xFF7B5CFF)),
                     start = androidx.compose.ui.geometry.Offset(-900f + phase * 1800f, 0f),
                     end = androidx.compose.ui.geometry.Offset(500f + phase * 1800f, 0f),
                     tileMode = TileMode.Mirror
@@ -813,49 +702,28 @@ private fun LiquidButton(text: String, onClick: () -> Unit) {
             .padding(horizontal = 20.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text,
-            fontWeight = FontWeight.ExtraBold,
-            color = Color.White,
-            fontSize = 13.sp
-        )
+        Text(text, fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 13.sp)
     }
 }
 
-private fun Modifier.liquidClickable(
-    interactions: MutableInteractionSource,
-    onClick: () -> Unit
-): Modifier = composed {
-    clickable(
-        interactionSource = interactions,
-        indication = null,
-        onClick = onClick
-    )
+private fun Modifier.liquidClickable(interactions: MutableInteractionSource, onClick: () -> Unit): Modifier = composed {
+    clickable(interactionSource = interactions, indication = null, onClick = onClick)
 }
 
-private fun formatTimestamp(timestamp: Long): String =
-    dateFormatThreadLocal.get().format(Date(timestamp))
+private fun formatTimestamp(timestamp: Long): String = dateFormatThreadLocal.get().format(Date(timestamp))
 
 private fun checkPermission(context: Context): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
     Environment.isExternalStorageManager()
 } else {
-    ContextCompat.checkSelfPermission(
-        context,
-        Manifest.permission.READ_EXTERNAL_STORAGE
-    ) == PackageManager.PERMISSION_GRANTED
+    ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
 }
 
-private fun openStorageSettings(
-    context: Context,
-    legacyPermissionLauncher: androidx.activity.result.ActivityResultLauncher<String>
-) {
+private fun openStorageSettings(context: Context, legacyPermissionLauncher: androidx.activity.result.ActivityResultLauncher<String>) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
         try {
-            context.startActivity(
-                Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                    data = Uri.parse("package:${context.packageName}")
-                }
-            )
+            context.startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                data = Uri.parse("package:${context.packageName}")
+            })
         } catch (_: Exception) {
             context.startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
         }
@@ -871,18 +739,12 @@ private fun openFile(context: Context, file: File) {
         else -> "image/*"
     }
     try {
-        context.startActivity(
-            Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, mime)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-        )
+        context.startActivity(Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, mime)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        })
     } catch (_: Exception) {
-        Toast.makeText(
-            context,
-            context.getString(R.string.no_app_found_open),
-            Toast.LENGTH_SHORT
-        ).show()
+        Toast.makeText(context, context.getString(R.string.no_app_found_open), Toast.LENGTH_SHORT).show()
     }
 }
 
@@ -899,14 +761,8 @@ private fun shareOrRepost(context: Context, file: File, share: Boolean) {
         if (!share) setPackage("com.whatsapp")
     }
     try {
-        context.startActivity(
-            if (share) Intent.createChooser(intent, context.getString(R.string.share_via)) else intent
-        )
+        context.startActivity(if (share) Intent.createChooser(intent, context.getString(R.string.share_via)) else intent)
     } catch (_: Exception) {
-        Toast.makeText(
-            context,
-            context.getString(if (!share) R.string.whatsapp_not_installed else R.string.no_app_to_handle),
-            Toast.LENGTH_SHORT
-        ).show()
+        Toast.makeText(context, context.getString(if (!share) R.string.whatsapp_not_installed else R.string.no_app_to_handle), Toast.LENGTH_SHORT).show()
     }
 }
