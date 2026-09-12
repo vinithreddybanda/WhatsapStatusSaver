@@ -22,6 +22,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.InfiniteRepeatableSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -29,6 +30,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
@@ -103,7 +105,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -115,6 +116,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.rememberAsyncImagePainter
 import coil3.video.VideoFrameDecoder
 import coil3.request.ImageRequest
+import coil3.request.crossfade
+import coil3.request.decoderFactory
 import com.vinithreddybanda.whatsapstatus.model.Status
 import com.vinithreddybanda.whatsapstatus.ui.theme.WhatsapStatusTheme
 import kotlinx.coroutines.launch
@@ -363,13 +366,12 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
 
 @Composable
 private fun LiquidBackdrop(motion: MotionVector) {
-    val transition = rememberInfiniteTransition(label = "liquid_background")
-    val phase by transition.animateFloat(
+    val phase = rememberInfiniteTransition(label = "liquid_background").animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(12000, easing = FastOutSlowInEasing)),
         label = "phase"
-    )
+    ).value
     val offsetX = motion.x * 2.4f + phase * 30f
     val offsetY = motion.y * 1.8f + (1f - phase) * 22f
 
@@ -520,13 +522,18 @@ private fun StatusCard(
 ) {
     val context = LocalContext.current
     val painter = rememberAsyncImagePainter(
-        ImageRequest.Builder(context)
-            .data(status.file)
-            .crossfade(true)
-            .apply {
-                if (status.isVideo) decoderFactory(VideoFrameDecoder.Factory())
-            }
-            .build()
+        model = if (status.isVideo) {
+            ImageRequest.Builder(context)
+                .data(status.file)
+                .crossfade(true)
+                .decoderFactory(VideoFrameDecoder.Factory())
+                .build()
+        } else {
+            ImageRequest.Builder(context)
+                .data(status.file)
+                .crossfade(true)
+                .build()
+        }
     )
     val interactions = remember { MutableInteractionSource() }
     val pressed by interactions.collectIsPressedAsState()
@@ -785,12 +792,12 @@ private fun LiquidButton(text: String, onClick: () -> Unit) {
         ),
         label = "button_scale"
     )
-    val phase by rememberInfiniteTransition(label = "button_phase").animateFloat(
+    val phase = rememberInfiniteTransition(label = "button_phase").animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(5000, easing = FastOutSlowInEasing)),
         label = "button_phase_value"
-    )
+    ).value
 
     Box(
         Modifier
