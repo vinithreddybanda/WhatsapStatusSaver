@@ -87,7 +87,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -166,7 +165,6 @@ private fun rememberMotionVector(): MotionVector {
                 smoothedY = smoothedY * 0.84f + y.coerceIn(-12f, 12f) * 0.16f
                 motion = MotionVector(smoothedX, smoothedY)
             }
-
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
         }
         sensorManager.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_UI)
@@ -221,29 +219,17 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
         }
     }
 
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LiquidBackdrop(motion)
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(WindowInsets.statusBars.asPaddingValues())
-        ) {
+        Column(Modifier.fillMaxSize().padding(WindowInsets.statusBars.asPaddingValues())) {
             HeaderGlass(motion)
-
             if (hasPermission) {
                 GlassTabBar(
                     tabs = tabs,
                     selected = viewModel.selectedTab,
-                    onSelected = { tab ->
-                        scope.launch { pagerState.animateScrollToPage(tabs.indexOf(tab)) }
-                    },
+                    onSelected = { tab -> scope.launch { pagerState.animateScrollToPage(tabs.indexOf(tab)) } },
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
                 )
-
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.weight(1f),
@@ -271,21 +257,14 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
                                 }
                             }
                         }
-                        !viewModel.isFetching -> {
-                            EmptyGlassState(
-                                text = if (tab == StatusTab.Saved) {
-                                    stringResource(R.string.no_saved_statuses)
-                                } else {
-                                    stringResource(R.string.no_statuses_available)
-                                }
-                            )
-                        }
+                        !viewModel.isFetching -> EmptyGlassState(
+                            if (tab == StatusTab.Saved) stringResource(R.string.no_saved_statuses)
+                            else stringResource(R.string.no_statuses_available)
+                        )
                     }
                 }
             } else {
-                PermissionGlassState {
-                    openStorageSettings(context, legacyPermissionLauncher)
-                }
+                PermissionGlassState { openStorageSettings(context, legacyPermissionLauncher) }
             }
         }
 
@@ -295,12 +274,7 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
             exit = fadeOut(tween(220)),
             modifier = Modifier.fillMaxSize()
         ) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.10f))
-                    .blur(18.dp)
-            )
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.10f)).blur(18.dp))
         }
 
         selectedStatus?.let { status ->
@@ -314,9 +288,7 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
                 LiquidActionSheet(
                     status = status,
                     isSavedTab = viewModel.selectedTab == StatusTab.Saved,
-                    onClose = {
-                        scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null }
-                    },
+                    onClose = { scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null } },
                     onSave = {
                         viewModel.saveStatus(status) { success ->
                             Toast.makeText(context, context.getString(if (success) R.string.saved else R.string.failed_to_save), Toast.LENGTH_SHORT).show()
@@ -357,48 +329,34 @@ private fun LiquidBackdrop(motion: MotionVector) {
 
     Box(Modifier.fillMaxSize()) {
         Box(
-            Modifier
-                .size(280.dp)
-                .graphicsLayer {
-                    translationX = offsetX * density
-                    translationY = offsetY * density
-                }
-                .background(
-                    Brush.radialGradient(
-                        listOf(Color(0xFF4B8DFF).copy(alpha = 0.20f), Color.Transparent),
-                        radius = 480f
-                    ), CircleShape
-                )
-                .blur(42.dp)
+            Modifier.size(280.dp).graphicsLayer {
+                translationX = offsetX * density
+                translationY = offsetY * density
+            }.background(
+                Brush.radialGradient(
+                    listOf(Color(0xFF4B8DFF).copy(alpha = 0.20f), Color.Transparent),
+                    radius = 480f
+                ), CircleShape
+            ).blur(42.dp)
         )
         Box(
-            Modifier
-                .size(240.dp)
-                .align(Alignment.BottomEnd)
-                .graphicsLayer {
-                    translationX = (-offsetX * 0.7f) * density
-                    translationY = (-offsetY * 0.8f) * density
-                }
-                .background(
-                    Brush.radialGradient(
-                        listOf(Color(0xFFFF4FA3).copy(alpha = 0.15f), Color.Transparent),
-                        radius = 420f
-                    ), CircleShape
-                )
-                .blur(50.dp)
+            Modifier.size(240.dp).align(Alignment.BottomEnd).graphicsLayer {
+                translationX = (-offsetX * 0.7f) * density
+                translationY = (-offsetY * 0.8f) * density
+            }.background(
+                Brush.radialGradient(
+                    listOf(Color(0xFFFF4FA3).copy(alpha = 0.15f), Color.Transparent),
+                    radius = 420f
+                ), CircleShape
+            ).blur(50.dp)
         )
         Box(
-            Modifier
-                .size(220.dp)
-                .align(Alignment.CenterEnd)
-                .graphicsLayer { rotationZ = motion.x * 0.16f }
-                .background(
-                    Brush.radialGradient(
-                        listOf(Color(0xFF6C63FF).copy(alpha = 0.11f), Color.Transparent),
-                        radius = 360f
-                    ), CircleShape
-                )
-                .blur(48.dp)
+            Modifier.size(220.dp).align(Alignment.CenterEnd).graphicsLayer { rotationZ = motion.x * 0.16f }.background(
+                Brush.radialGradient(
+                    listOf(Color(0xFF6C63FF).copy(alpha = 0.11f), Color.Transparent),
+                    radius = 360f
+                ), CircleShape
+            ).blur(48.dp)
         )
     }
 }
@@ -412,10 +370,7 @@ private fun HeaderGlass(motion: MotionVector) {
     )
 
     Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 18.dp, vertical = 12.dp)
-            .graphicsLayer { translationY = titleLift.toPx() },
+        Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp).graphicsLayer { translationY = titleLift.toPx() },
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {
@@ -434,9 +389,7 @@ private fun HeaderGlass(motion: MotionVector) {
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.50f)
             )
         }
-        IconButton(onClick = { }) {
-            Icon(Icons.Default.MoreHoriz, contentDescription = null)
-        }
+        IconButton(onClick = { }) { Icon(Icons.Default.MoreHoriz, contentDescription = null) }
     }
 }
 
@@ -460,15 +413,8 @@ private fun GlassTabBar(
                 modifier = Modifier
                     .graphicsLayer { scaleX = scale; scaleY = scale }
                     .clip(RoundedCornerShape(18.dp))
-                    .background(
-                        if (isSelected) MaterialTheme.colorScheme.onBackground.copy(alpha = 0.10f)
-                        else Color.Transparent
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = if (isSelected) 0.12f else 0.05f),
-                        shape = RoundedCornerShape(18.dp)
-                    )
+                    .background(if (isSelected) MaterialTheme.colorScheme.onBackground.copy(alpha = 0.10f) else Color.Transparent)
+                    .border(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = if (isSelected) 0.12f else 0.05f), RoundedCornerShape(18.dp))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
@@ -502,14 +448,11 @@ private fun StatusCard(
     }
 
     Box(
-        Modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-                rotationZ = motion.x * 0.04f
-            }
-            .clip(RoundedCornerShape(22.dp))
+        Modifier.fillMaxWidth().graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+            rotationZ = motion.x * 0.04f
+        }.clip(RoundedCornerShape(22.dp))
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.68f))
             .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(22.dp))
             .clickable(pressedSource, indication = null, onClick = onCardClick)
@@ -523,36 +466,18 @@ private fun StatusCard(
                         .build()
                 ),
                 contentDescription = status.title,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(if (status.isVideo) 0.82f else 0.78f)
-                    .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)),
+                modifier = Modifier.fillMaxWidth().aspectRatio(if (status.isVideo) 0.82f else 0.78f).clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)),
                 contentScale = ContentScale.Crop
             )
-
             Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text(
-                        text = status.title,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = dateText,
-                        fontSize = 9.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.52f)
-                    )
+                    Text(status.title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, color = MaterialTheme.colorScheme.onSurface)
+                    Text(dateText, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.52f))
                 }
-                if (status.isVideo) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
-                }
+                if (status.isVideo) Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
                 IconButton(onClick = onMenuClick, modifier = Modifier.size(30.dp)) {
                     Icon(Icons.Default.MoreHoriz, contentDescription = null, modifier = Modifier.size(18.dp))
                 }
@@ -566,8 +491,7 @@ private fun EmptyGlassState(text: String) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(
             text = text,
-            modifier = Modifier
-                .clip(RoundedCornerShape(20.dp))
+            modifier = Modifier.clip(RoundedCornerShape(20.dp))
                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.65f))
                 .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
                 .padding(horizontal = 22.dp, vertical = 14.dp),
@@ -589,9 +513,8 @@ private fun PermissionGlassState(onClick: () -> Unit) {
         )
         Spacer(Modifier.height(14.dp))
         Text(
-            text = stringResource(R.string.grant_storage_access),
-            modifier = Modifier
-                .clip(RoundedCornerShape(18.dp))
+            text = stringResource(R.string.grant_permission),
+            modifier = Modifier.clip(RoundedCornerShape(18.dp))
                 .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.10f))
                 .clickable(onClick = onClick)
                 .padding(horizontal = 18.dp, vertical = 11.dp),
@@ -611,9 +534,7 @@ private fun LiquidActionSheet(
     onRepost: () -> Unit
 ) {
     Column(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
             .padding(18.dp)
     ) {
@@ -640,10 +561,7 @@ private fun LiquidActionSheet(
 @Composable
 private fun ActionRow(icon: ImageVector, title: String, onClick: () -> Unit) {
     Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
@@ -686,21 +604,21 @@ private fun openFile(context: Context, file: File) {
         }
         context.startActivity(intent)
     }.onFailure {
-        Toast.makeText(context, R.string.failed_to_open_file, Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, R.string.no_app_found_open, Toast.LENGTH_SHORT).show()
     }
 }
 
 private fun shareOrRepost(context: Context, file: File, share: Boolean) {
     runCatching {
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-        val intent = Intent(if (share) Intent.ACTION_SEND else Intent.ACTION_SEND).apply {
+        val intent = Intent(Intent.ACTION_SEND).apply {
             type = if (file.extension.equals("mp4", true)) "video/*" else "image/*"
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         context.startActivity(Intent.createChooser(intent, null))
     }.onFailure {
-        Toast.makeText(context, R.string.failed_to_share, Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, R.string.no_app_to_handle, Toast.LENGTH_SHORT).show()
     }
 }
 
