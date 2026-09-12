@@ -25,25 +25,12 @@ jobs:
           java-version: '21'
           cache: gradle
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Build GitHub debug APK
+      - name: Build APK
         run: ./gradlew --no-daemon clean assembleGithubDebug
 
-      - name: Upload GitHub debug APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-github-debug-apk
+          name: whatsapp-status-saver-apk
           path: app/build/outputs/apk/github/debug/*.apk
-          if-no-files-found: error
-
-      - name: Build F-Droid release APK
-        run: ./gradlew --no-daemon assembleFdroidRelease
-
-      - name: Upload F-Droid release APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-fdroid-release-apk
-          path: app/build/outputs/apk/fdroid/release/*.apk
           if-no-files-found: error
