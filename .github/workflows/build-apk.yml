@@ -31,10 +31,18 @@ jobs:
       - name: Install required Android SDK packages
         run: |
           yes | sdkmanager --licenses
-          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+          sdkmanager "platform-tools" "platforms;android-37" "build-tools;36.0.0"
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
+
+      - name: Verify Java and Gradle versions
+        run: |
+          java -version
+          ./gradlew --version
+
+      - name: Validate Gradle configuration
+        run: ./gradlew --no-daemon -Dorg.gradle.java.home="$JAVA_HOME" help
 
       - name: Build GitHub debug APK
         run: ./gradlew --no-daemon -Dorg.gradle.java.home="$JAVA_HOME" clean assembleGithubDebug
