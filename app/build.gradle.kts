@@ -1,10 +1,9 @@
-
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
+
 kotlin {
     jvmToolchain(21)
 }
@@ -35,15 +34,14 @@ val ciVersionCode = providers.gradleProperty("CI_VERSION_CODE")
 
 android {
     namespace = "com.vinithreddybanda.whatsapstatus"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.vinithreddybanda.whatsapstatus"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 37
         versionCode = ciVersionCode ?: 2
         versionName = ciVersionName ?: "1.1"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -97,9 +95,7 @@ android {
     }
 
     dependenciesInfo {
-        // Disables dependency metadata when building APKs.
         includeInApk = false
-        // Disables dependency metadata when building Android App Bundles.
         includeInBundle = false
     }
 }
@@ -114,6 +110,7 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.material.icons.extended)
