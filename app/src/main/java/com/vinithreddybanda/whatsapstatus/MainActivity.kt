@@ -90,6 +90,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TileMode
@@ -151,6 +152,7 @@ private fun rememberMotionVector(): MotionVector {
     var motion by remember { mutableStateOf(MotionVector()) }
     val sensorManager = remember { context.getSystemService(Context.SENSOR_SERVICE) as SensorManager }
     val sensor = remember { sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) }
+
     DisposableEffect(sensor) {
         if (sensor == null) return@DisposableEffect onDispose { }
         var smoothedX = 0f
@@ -184,7 +186,9 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val legacyPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { hasPermission = it }
+    val legacyPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { hasPermission = it }
 
     LaunchedEffect(Unit) {
         if (!hasPermission) {
@@ -214,32 +218,45 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(hasPermission) { if (hasPermission) viewModel.getStatuses() }
+    LaunchedEffect(hasPermission) {
+        if (hasPermission) viewModel.getStatuses()
+    }
 
     val tabs = listOf(StatusTab.All, StatusTab.Images, StatusTab.Videos, StatusTab.Saved)
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { tabs.size })
 
     LaunchedEffect(viewModel.selectedTab) {
-        tabs.indexOf(viewModel.selectedTab).takeIf { it >= 0 }?.let { index ->
-            if (pagerState.currentPage != index) pagerState.animateScrollToPage(index)
+        val index = tabs.indexOf(viewModel.selectedTab)
+        if (index >= 0 && pagerState.currentPage != index) {
+            pagerState.animateScrollToPage(index)
         }
     }
 
     LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.currentPage }.collect { page -> viewModel.onTabSelected(tabs[page]) }
+        snapshotFlow { pagerState.currentPage }.collect { page ->
+            viewModel.onTabSelected(tabs[page])
+        }
     }
 
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LiquidBackdrop(motion)
-        Column(Modifier.fillMaxSize().padding(WindowInsets.statusBars.asPaddingValues())) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(WindowInsets.statusBars.asPaddingValues())
+        ) {
             HeaderGlass(motion)
+
             if (hasPermission) {
                 GlassTabBar(
                     tabs = tabs,
                     selected = viewModel.selectedTab,
-                    onSelected = { tab -> scope.launch { pagerState.animateScrollToPage(tabs.indexOf(tab)) } },
+                    onSelected = { tab ->
+                        scope.launch { pagerState.animateScrollToPage(tabs.indexOf(tab)) }
+                    },
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
                 )
+
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.weight(1f),
@@ -260,7 +277,6 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
                             items(statuses, key = { it.path }) { status ->
                                 StatusCard(
                                     status = status,
-                                    viewModel = viewModel,
                                     motion = motion,
                                     onCardClick = { openFile(context, status.file) },
                                     onMenuClick = { selectedStatus = status }
@@ -269,8 +285,11 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
                         }
                     } else if (!viewModel.isFetching) {
                         EmptyGlassState(
-                            text = if (tab == StatusTab.Saved) stringResource(R.string.no_saved_statuses)
-                            else stringResource(R.string.no_statuses_available)
+                            text = if (tab == StatusTab.Saved) {
+                                stringResource(R.string.no_saved_statuses)
+                            } else {
+                                stringResource(R.string.no_statuses_available)
+                            }
                         )
                     }
                 }
@@ -293,7 +312,12 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
             exit = fadeOut(tween(220)),
             modifier = Modifier.fillMaxSize()
         ) {
-            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.10f)).blur(18.dp))
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.10f))
+                    .blur(18.dp)
+            )
         }
 
         if (selectedStatus != null) {
@@ -307,25 +331,35 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
                 LiquidActionSheet(
                     status = selectedStatus!!,
                     isSavedTab = viewModel.selectedTab == StatusTab.Saved,
-                    onClose = { scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null } },
+                    onClose = {
+                        scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null }
+                    },
                     onSave = {
                         viewModel.saveStatus(selectedStatus!!) { success ->
-                            Toast.makeText(context, context.getString(if (success) R.string.saved else R.string.failed_to_save), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                context.getString(if (success) R.string.saved else R.string.failed_to_save),
+                                Toast.LENGTH_SHORT
+                            ).show()
                             scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null }
                         }
                     },
                     onDelete = {
                         viewModel.deleteStatus(selectedStatus!!) { success ->
-                            Toast.makeText(context, context.getString(if (success) R.string.deleted else R.string.failed_to_delete), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                context.getString(if (success) R.string.deleted else R.string.failed_to_delete),
+                                Toast.LENGTH_SHORT
+                            ).show()
                             scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null }
                         }
                     },
                     onShare = {
-                        shareOrRepost(context, selectedStatus!!.file, true)
+                        shareOrRepost(context, selectedStatus!!.file, share = true)
                         scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null }
                     },
                     onRepost = {
-                        shareOrRepost(context, selectedStatus!!.file, false)
+                        shareOrRepost(context, selectedStatus!!.file, share = false)
                         scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null }
                     }
                 )
@@ -337,23 +371,72 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
 @Composable
 private fun LiquidBackdrop(motion: MotionVector) {
     val transition = rememberInfiniteTransition(label = "liquid_background")
-    val phase by transition.animateFloat(0f, 1f, infiniteRepeatable(tween(12000, easing = FastOutSlowInEasing)), label = "phase")
+    val phase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            tween(12000, easing = FastOutSlowInEasing)
+        ),
+        label = "phase"
+    )
     val offsetX = motion.x * 2.4f + phase * 30f
     val offsetY = motion.y * 1.8f + (1f - phase) * 22f
+
     Box(Modifier.fillMaxSize()) {
         Box(
-            Modifier.size(280.dp).graphicsLayer { translationX = offsetX * density; translationY = offsetY * density }
-                .background(Brush.radialGradient(listOf(Color(0xFF4B8DFF).copy(alpha = 0.20f), Color.Transparent), radius = 480f), CircleShape)
+            Modifier
+                .size(280.dp)
+                .graphicsLayer {
+                    translationX = offsetX * density
+                    translationY = offsetY * density
+                }
+                .background(
+                    Brush.radialGradient(
+                        listOf(
+                            Color(0xFF4B8DFF).copy(alpha = 0.20f),
+                            Color.Transparent
+                        ),
+                        radius = 480f
+                    ),
+                    CircleShape
+                )
                 .blur(42.dp)
         )
         Box(
-            Modifier.size(240.dp).align(Alignment.BottomEnd).graphicsLayer { translationX = (-offsetX * 0.7f) * density; translationY = (-offsetY * 0.8f) * density }
-                .background(Brush.radialGradient(listOf(Color(0xFFFF4FA3).copy(alpha = 0.15f), Color.Transparent), radius = 420f), CircleShape)
+            Modifier
+                .size(240.dp)
+                .align(Alignment.BottomEnd)
+                .graphicsLayer {
+                    translationX = (-offsetX * 0.7f) * density
+                    translationY = (-offsetY * 0.8f) * density
+                }
+                .background(
+                    Brush.radialGradient(
+                        listOf(
+                            Color(0xFFFF4FA3).copy(alpha = 0.15f),
+                            Color.Transparent
+                        ),
+                        radius = 420f
+                    ),
+                    CircleShape
+                )
                 .blur(50.dp)
         )
         Box(
-            Modifier.size(220.dp).align(Alignment.CenterEnd).graphicsLayer { rotationZ = motion.x * 0.16f }
-                .background(Brush.radialGradient(listOf(Color(0xFF6C63FF).copy(alpha = 0.11f), Color.Transparent), radius = 360f), CircleShape)
+            Modifier
+                .size(220.dp)
+                .align(Alignment.CenterEnd)
+                .graphicsLayer { rotationZ = motion.x * 0.16f }
+                .background(
+                    Brush.radialGradient(
+                        listOf(
+                            Color(0xFF6C63FF).copy(alpha = 0.11f),
+                            Color.Transparent
+                        ),
+                        radius = 360f
+                    ),
+                    CircleShape
+                )
                 .blur(48.dp)
         )
     }
@@ -361,51 +444,200 @@ private fun LiquidBackdrop(motion: MotionVector) {
 
 @Composable
 private fun HeaderGlass(motion: MotionVector) {
-    val titleLift by animateDpAsState((motion.y * -0.18f).dp, spring(stiffness = Spring.StiffnessLow), label = "title_lift")
-    Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp).graphicsLayer { translationY = titleLift.toPx() }, Alignment.CenterVertically) {
+    val titleLift by animateDpAsState(
+        targetValue = (motion.y * -0.18f).dp,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "title_lift"
+    )
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 18.dp, vertical = 12.dp)
+            .graphicsLayer { translationY = titleLift.toPx() },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Column(Modifier.weight(1f)) {
-            Text(stringResource(R.string.status_saver), fontSize = 25.sp, fontWeight = FontWeight.Black, letterSpacing = (-0.7).sp, color = MaterialTheme.colorScheme.onBackground)
-            Text("YOUR STATUS VAULT", fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f))
+            Text(
+                text = stringResource(R.string.status_saver),
+                fontSize = 25.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = (-0.7).sp,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = "YOUR STATUS VAULT",
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.5.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
+            )
         }
-        Box(Modifier.size(42.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.36f)), Alignment.Center) {
+        Box(
+            Modifier
+                .size(42.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.36f)),
+            contentAlignment = Alignment.Center
+        ) {
             Icon(Icons.Default.MoreHoriz, contentDescription = null)
         }
     }
 }
 
 @Composable
-private fun GlassTabBar(tabs: List<StatusTab>, selected: StatusTab, onSelected: (StatusTab) -> Unit, modifier: Modifier = Modifier) {
-    LazyRow(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun GlassTabBar(
+    tabs: List<StatusTab>,
+    selected: StatusTab,
+    onSelected: (StatusTab) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         items(tabs) { tab ->
             val active = tab == selected
             Box(
-                Modifier.clip(RoundedCornerShape(16.dp))
-                    .background(if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.28f))
-                    .border(1.dp, if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.45f) else Color.White.copy(alpha = 0.10f), RoundedCornerShape(16.dp))
-                    .clickable { onSelected(tab) }.padding(horizontal = 14.dp, vertical = 9.dp)
-            ) { Text(tab.title, fontWeight = if (active) FontWeight.Bold else FontWeight.Medium, fontSize = 12.sp) }
+                Modifier
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        if (active) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                        } else {
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.28f)
+                        }
+                    )
+                    .border(
+                        1.dp,
+                        if (active) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                        } else {
+                            Color.White.copy(alpha = 0.10f)
+                        },
+                        RoundedCornerShape(16.dp)
+                    )
+                    .clickable { onSelected(tab) }
+                    .padding(horizontal = 14.dp, vertical = 9.dp)
+            ) {
+                Text(
+                    text = when (tab) {
+                        StatusTab.All -> stringResource(R.string.tab_all)
+                        StatusTab.Images -> stringResource(R.string.tab_images)
+                        StatusTab.Videos -> stringResource(R.string.tab_videos)
+                        StatusTab.Saved -> stringResource(R.string.tab_saved)
+                    },
+                    fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+                    fontSize = 12.sp
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun StatusCard(status: Status, viewModel: MainViewModel, motion: MotionVector, onCardClick: () -> Unit, onMenuClick: () -> Unit) {
-    val painter = rememberAsyncImagePainter(ImageRequest.Builder(LocalContext.current).data(status.file).decoderFactory(VideoFrameDecoder.Factory()).crossfade(true).build())
-    val pressSource = remember { MutableInteractionSource() }
-    val pressed by pressSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (pressed) 0.965f else 1f, spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow), label = "card_scale")
-    GlassSurface(
-        Modifier.fillMaxWidth().graphicsLayer { scaleX = scale; scaleY = scale; translationX = motion.x * 0.35f; translationY = motion.y * 0.22f }.liquidClickable(pressSource, onCardClick)
-    ) {
-        Box(Modifier.aspectRatio(0.78f)) {
-            Image(painter, null, Modifier.fillMaxSize().clip(RoundedCornerShape(28.dp)), ContentScale.Crop)
-            if (status.isVideo) Box(Modifier.align(Alignment.Center).size(52.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.38f)), Alignment.Center) {
-                Icon(Icons.Default.PlayArrow, null, tint = Color.White, modifier = Modifier.size(30.dp))
+private fun StatusCard(
+    status: Status,
+    motion: MotionVector,
+    onCardClick: () -> Unit,
+    onMenuClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val painter = rememberAsyncImagePainter(
+        ImageRequest.Builder(context)
+            .data(status.file)
+            .crossfade(true)
+            .apply {
+                if (status.isVideo) {
+                    decoderFactory(VideoFrameDecoder.Factory())
+                }
             }
-            IconButton(onClick = onMenuClick, modifier = Modifier.align(Alignment.TopEnd).padding(6.dp)) { Icon(Icons.Default.MoreHoriz, null, tint = Color.White) }
-            Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().background(Color.Black.copy(alpha = 0.32f)).padding(12.dp)) {
-                Text(status.name, Color.White, 12.sp, FontWeight.Bold, maxLines = 1)
-                Text(formatDate(status.lastModified), color = Color.White.copy(alpha = 0.72f), fontSize = 9.sp)
+            .build()
+    )
+    val interactions = remember { MutableInteractionSource() }
+    val pressed by interactions.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.965f else 1f,
+        animationSpec = spring(
+            dampingRatio = 0.72f,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "card_scale"
+    )
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                translationX = motion.x * 0.35f
+                translationY = motion.y * 0.22f
+            }
+            .liquidClickable(interactions, onCardClick)
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.78f)
+                .clip(RoundedCornerShape(22.dp))
+                .background(Color.White.copy(alpha = 0.065f))
+                .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(22.dp))
+        ) {
+            Image(
+                painter = painter,
+                contentDescription = status.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+            if (status.isVideo) {
+                Box(
+                    Modifier
+                        .align(Alignment.Center)
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.38f))
+                        .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.PlayArrow,
+                        contentDescription = stringResource(R.string.video),
+                        tint = Color.White,
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
+            }
+            IconButton(
+                onClick = onMenuClick,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(6.dp)
+            ) {
+                Icon(
+                    Icons.Default.MoreHoriz,
+                    contentDescription = stringResource(R.string.more_options),
+                    tint = Color.White
+                )
+            }
+            Column(
+                Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.32f))
+                    .padding(12.dp)
+            ) {
+                Text(
+                    text = status.title,
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+                Text(
+                    text = formatTimestamp(status.timestamp),
+                    color = Color.White.copy(alpha = 0.72f),
+                    fontSize = 9.sp
+                )
             }
         }
     }
@@ -413,103 +645,310 @@ private fun StatusCard(status: Status, viewModel: MainViewModel, motion: MotionV
 
 @Composable
 private fun EmptyGlassState(text: String) {
-    Box(Modifier.fillMaxSize().padding(28.dp), Alignment.Center) { GlassSurface(Modifier.fillMaxWidth().padding(10.dp)) { Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) { Text(text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp) } } }
+    Box(
+        Modifier
+            .fillMaxSize()
+            .padding(28.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        GlassSurface(Modifier.fillMaxWidth().padding(10.dp)) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp
+                )
+            }
+        }
+    }
 }
 
 @Composable
 private fun PermissionGlassState(onClick: () -> Unit) {
-    Box(Modifier.fillMaxSize().padding(28.dp), Alignment.Center) { GlassSurface(Modifier.fillMaxWidth().padding(12.dp)) {
-        Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(stringResource(R.string.storage_permission_required), fontWeight = FontWeight.Bold, fontSize = 17.sp)
-            Spacer(Modifier.height(8.dp))
-            Text(stringResource(R.string.storage_permission_description), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(18.dp))
-            LiquidButton(stringResource(R.string.grant_permission), onClick)
+    Box(
+        Modifier
+            .fillMaxSize()
+            .padding(28.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        GlassSurface(Modifier.fillMaxWidth().padding(12.dp)) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    stringResource(R.string.storage_permission_required),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    stringResource(R.string.storage_permission_description),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(18.dp))
+                LiquidButton(stringResource(R.string.grant_permission), onClick)
+            }
         }
-    } }
+    }
 }
 
 @Composable
-private fun LiquidActionSheet(status: Status, isSavedTab: Boolean, onClose: () -> Unit, onSave: () -> Unit, onDelete: () -> Unit, onShare: () -> Unit, onRepost: () -> Unit) {
+private fun LiquidActionSheet(
+    status: Status,
+    isSavedTab: Boolean,
+    onClose: () -> Unit,
+    onSave: () -> Unit,
+    onDelete: () -> Unit,
+    onShare: () -> Unit,
+    onRepost: () -> Unit
+) {
     GlassSurface(Modifier.fillMaxWidth().padding(14.dp)) {
         Column(Modifier.fillMaxWidth().padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(status.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text(formatDate(status.lastModified), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(status.title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(
+                        formatTimestamp(status.timestamp),
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                IconButton(onClick = onClose) { Icon(Icons.Default.Close, null) }
+                IconButton(onClick = onClose) {
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
+                }
             }
             Spacer(Modifier.height(10.dp))
-            LiquidButton(if (isSavedTab) stringResource(R.string.delete) else stringResource(R.string.save), if (isSavedTab) onDelete else onSave)
+            LiquidButton(
+                if (isSavedTab) stringResource(R.string.delete) else stringResource(R.string.save),
+                if (isSavedTab) onDelete else onSave
+            )
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                ActionChip(Icons.Outlined.Share, stringResource(R.string.share), onShare, Modifier.weight(1f))
-                ActionChip(Icons.AutoMirrored.Outlined.Send, stringResource(R.string.repost), onRepost, Modifier.weight(1f))
+                ActionChip(
+                    Icons.Outlined.Share,
+                    stringResource(R.string.share),
+                    onShare,
+                    Modifier.weight(1f)
+                )
+                ActionChip(
+                    Icons.AutoMirrored.Outlined.Send,
+                    stringResource(R.string.repost_to_whatsapp),
+                    onRepost,
+                    Modifier.weight(1f)
+                )
             }
             if (isSavedTab) {
                 Spacer(Modifier.height(10.dp))
-                ActionChip(Icons.Outlined.Delete, stringResource(R.string.delete), onDelete, Modifier.fillMaxWidth())
+                ActionChip(
+                    Icons.Outlined.Delete,
+                    stringResource(R.string.delete),
+                    onDelete,
+                    Modifier.fillMaxWidth()
+                )
             }
         }
     }
 }
 
 @Composable
-private fun ActionChip(icon: ImageVector, text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier.clip(RoundedCornerShape(16.dp)).background(Color.White.copy(alpha = 0.07f)).border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 11.dp), Alignment.Center) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) { Icon(icon, null, Modifier.size(18.dp)); Text(text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
+private fun ActionChip(
+    icon: ImageVector,
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.White.copy(alpha = 0.07f))
+            .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 11.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(7.dp)
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text(text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        }
     }
 }
 
 @Composable
-private fun GlassSurface(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Box(modifier.clip(RoundedCornerShape(28.dp)).background(Brush.linearGradient(colors = listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.055f), Color(0xFF8F7DFF).copy(alpha = 0.055f)))).border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(28.dp))) { content() }
+private fun GlassSurface(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Box(
+        modifier
+            .clip(RoundedCornerShape(28.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.12f),
+                        Color.White.copy(alpha = 0.055f),
+                        Color(0xFF8F7DFF).copy(alpha = 0.055f)
+                    )
+                )
+            )
+            .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(28.dp))
+    ) {
+        content()
+    }
 }
 
 @Composable
 private fun LiquidButton(text: String, onClick: () -> Unit) {
     val interactions = remember { MutableInteractionSource() }
     val pressed by interactions.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (pressed) 0.95f else 1f, spring(dampingRatio = 0.65f, stiffness = Spring.StiffnessMediumLow), label = "button_scale")
-    val phase by rememberInfiniteTransition(label = "button_phase").animateFloat(0f, 1f, infiniteRepeatable(tween(5000, easing = FastOutSlowInEasing)), label = "button_phase_value")
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.95f else 1f,
+        animationSpec = spring(
+            dampingRatio = 0.65f,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "button_scale"
+    )
+    val phase by rememberInfiniteTransition(label = "button_phase").animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            tween(5000, easing = FastOutSlowInEasing)
+        ),
+        label = "button_phase_value"
+    )
+
     Box(
-        Modifier.graphicsLayer { scaleX = scale; scaleY = scale }.clip(RoundedCornerShape(18.dp)).background(
-            Brush.linearGradient(
-                colors = listOf(Color(0xFF7B5CFF), Color(0xFFEA68B8), Color(0xFF4CCBFF), Color(0xFF7B5CFF)),
-                start = androidx.compose.ui.geometry.Offset(-900f + phase * 1800f, 0f),
-                end = androidx.compose.ui.geometry.Offset(500f + phase * 1800f, 0f),
-                tileMode = TileMode.Mirror
+        Modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFF7B5CFF),
+                        Color(0xFFEA68B8),
+                        Color(0xFF4CCBFF),
+                        Color(0xFF7B5CFF)
+                    ),
+                    start = androidx.compose.ui.geometry.Offset(
+                        -900f + phase * 1800f,
+                        0f
+                    ),
+                    end = androidx.compose.ui.geometry.Offset(
+                        500f + phase * 1800f,
+                        0f
+                    ),
+                    tileMode = TileMode.Mirror
+                )
             )
-        ).border(1.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(18.dp)).liquidClickable(interactions, onClick).padding(horizontal = 20.dp, vertical = 12.dp),
-        Alignment.Center
-    ) { Text(text, fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 13.sp) }
+            .border(1.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(18.dp))
+            .liquidClickable(interactions, onClick)
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text,
+            fontWeight = FontWeight.ExtraBold,
+            color = Color.White,
+            fontSize = 13.sp
+        )
+    }
 }
 
-private fun Modifier.liquidClickable(interactions: MutableInteractionSource, onClick: () -> Unit): Modifier = composed {
-    clickable(interactionSource = interactions, indication = null, onClick = onClick)
+private fun Modifier.liquidClickable(
+    interactions: MutableInteractionSource,
+    onClick: () -> Unit
+): Modifier = composed {
+    clickable(
+        interactionSource = interactions,
+        indication = null,
+        onClick = onClick
+    )
 }
 
-private fun formatDate(timestamp: Long): String = dateFormatThreadLocal.get().format(Date(timestamp))
+private fun formatTimestamp(timestamp: Long): String =
+    dateFormatThreadLocal.get().format(Date(timestamp))
 
 private fun checkPermission(context: Context): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
     Environment.isExternalStorageManager()
 } else {
-    ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+    ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.READ_EXTERNAL_STORAGE
+    ) == PackageManager.PERMISSION_GRANTED
 }
 
 private fun openFile(context: Context, file: File) {
-    val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-    val mime = when (file.extension.lowercase(Locale.getDefault())) { "mp4", "3gp", "mkv", "webm" -> "video/*"; else -> "image/*" }
-    context.startActivity(Intent(Intent.ACTION_VIEW).apply { setDataAndType(uri, mime); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) })
+    val uri = FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.provider",
+        file
+    )
+    val mime = when (file.extension.lowercase(Locale.getDefault())) {
+        "mp4", "3gp", "mkv", "webm" -> "video/*"
+        else -> "image/*"
+    }
+    try {
+        context.startActivity(
+            Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, mime)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+        )
+    } catch (_: Exception) {
+        Toast.makeText(
+            context,
+            context.getString(R.string.no_app_found_open),
+            Toast.LENGTH_SHORT
+        ).show()
+    }
 }
 
 private fun shareOrRepost(context: Context, file: File, share: Boolean) {
-    val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+    val uri = FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.provider",
+        file
+    )
+    val mime = when (file.extension.lowercase(Locale.getDefault())) {
+        "mp4", "3gp", "mkv", "webm" -> "video/*"
+        else -> "image/*"
+    }
     val intent = Intent(Intent.ACTION_SEND).apply {
-        type = when (file.extension.lowercase(Locale.getDefault())) { "mp4", "3gp", "mkv", "webm" -> "video/*"; else -> "image/*" }
+        type = mime
         putExtra(Intent.EXTRA_STREAM, uri)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        if (!share) setPackage("com.whatsapp")
     }
-    context.startActivity(Intent.createChooser(intent, if (share) "Share status" else "Repost status"))
+    try {
+        context.startActivity(
+            if (share) {
+                Intent.createChooser(intent, context.getString(R.string.share_via))
+            } else {
+                intent
+            }
+        )
+    } catch (_: Exception) {
+        Toast.makeText(
+            context,
+            context.getString(
+                if (!share) R.string.whatsapp_not_installed else R.string.no_app_to_handle
+            ),
+            Toast.LENGTH_SHORT
+        ).show()
+    }
 }
