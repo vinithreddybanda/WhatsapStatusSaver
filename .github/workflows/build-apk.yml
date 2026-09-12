@@ -28,36 +28,20 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install required Android SDK packages
-        run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
-
-      - name: Make Gradle wrapper executable
-        run: chmod +x ./gradlew
-
-      - name: Verify Java and Gradle versions
-        run: |
-          java -version
-          ./gradlew --version
-
-      - name: Validate Gradle configuration
-        run: ./gradlew --no-daemon -Dorg.gradle.java.home="$JAVA_HOME" help
-
       - name: Build GitHub debug APK
-        run: ./gradlew --no-daemon -Dorg.gradle.java.home="$JAVA_HOME" clean assembleGithubDebug
+        run: ./gradlew --no-daemon clean assembleGithubDebug
 
-      - name: Build F-Droid release APK
-        run: ./gradlew --no-daemon -Dorg.gradle.java.home="$JAVA_HOME" assembleFdroidRelease
-
-      - name: Upload GitHub debug APK artifact
+      - name: Upload GitHub debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-github-debug-dev-apk
+          name: app-github-debug-apk
           path: app/build/outputs/apk/github/debug/*.apk
           if-no-files-found: error
 
-      - name: Upload F-Droid release APK artifact
+      - name: Build F-Droid release APK
+        run: ./gradlew --no-daemon assembleFdroidRelease
+
+      - name: Upload F-Droid release APK
         uses: actions/upload-artifact@v4
         with:
           name: app-fdroid-release-apk
