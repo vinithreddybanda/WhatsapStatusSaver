@@ -5,6 +5,7 @@
     <string name="search_language">Search language</string>
     <string name="search">Search</string>
     <string name="storage_permission_required">Storage Permission Required</string>
+    <string name="storage_permission_description">Storage access unlocks your status vault.</string>
     <string name="grant_permission">Grant Permission</string>
     <string name="no_saved_statuses">No saved statuses yet</string>
     <string name="no_statuses_available">No statuses available</string>
