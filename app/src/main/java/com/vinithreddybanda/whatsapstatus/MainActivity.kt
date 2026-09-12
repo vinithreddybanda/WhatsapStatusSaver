@@ -22,6 +22,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -40,12 +41,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -376,7 +379,7 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
 }
 
 @Composable
-private fun LiquidBackdrop(motion: MotionVector) {
+private private fun LiquidBackdrop(motion: MotionVector) {
     val transition = rememberInfiniteTransition(label = "liquid_background")
     val phase by transition.animateFloat(
         initialValue = 0f,
@@ -540,7 +543,7 @@ private fun GlassTabBar(
 }
 
 @Composable
-fun StatusCard(
+private fun StatusCard(
     status: Status,
     viewModel: MainViewModel,
     motion: MotionVector,
