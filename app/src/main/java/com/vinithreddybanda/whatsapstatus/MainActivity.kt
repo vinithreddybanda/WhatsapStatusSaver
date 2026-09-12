@@ -9,6 +9,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -22,7 +23,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.infiniteRepeatable
@@ -38,12 +38,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -63,10 +63,10 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -112,9 +112,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.rememberAsyncImagePainter
-import coil.decode.VideoFrameDecoder
-import coil.request.ImageRequest
+import coil3.compose.rememberAsyncImagePainter
+import coil3.video.VideoFrameDecoder
+import coil3.request.ImageRequest
 import com.vinithreddybanda.whatsapstatus.model.Status
 import com.vinithreddybanda.whatsapstatus.ui.theme.WhatsapStatusTheme
 import kotlinx.coroutines.launch
@@ -150,7 +150,9 @@ class MainActivity : AppCompatActivity() {
 private fun rememberMotionVector(): MotionVector {
     val context = LocalContext.current
     var motion by remember { mutableStateOf(MotionVector()) }
-    val sensorManager = remember { context.getSystemService(Context.SENSOR_SERVICE) as SensorManager }
+    val sensorManager = remember {
+        context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+    }
     val sensor = remember { sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) }
 
     DisposableEffect(sensor) {
@@ -165,11 +167,13 @@ private fun rememberMotionVector(): MotionVector {
                 smoothedY = smoothedY * 0.84f + y.coerceIn(-12f, 12f) * 0.16f
                 motion = MotionVector(smoothedX, smoothedY)
             }
+
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
         }
         sensorManager.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_UI)
         onDispose { sensorManager.unregisterListener(listener) }
     }
+
     return motion
 }
 
@@ -191,20 +195,7 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
     ) { hasPermission = it }
 
     LaunchedEffect(Unit) {
-        if (!hasPermission) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                try {
-                    context.startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                        addCategory(Intent.CATEGORY_DEFAULT)
-                        data = "package:${context.packageName}".toUri()
-                    })
-                } catch (_: Exception) {
-                    context.startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
-                }
-            } else {
-                legacyPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
-            }
-        }
+        if (!hasPermission) openStorageSettings(context, legacyPermissionLauncher)
     }
 
     DisposableEffect(lifecycleOwner) {
@@ -238,7 +229,11 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
         }
     }
 
-    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         LiquidBackdrop(motion)
         Column(
             Modifier
@@ -266,42 +261,40 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
                 ) { page ->
                     val tab = tabs[page]
                     val statuses = viewModel.getStatusesForTab(tab)
-                    if (statuses.isNotEmpty()) {
-                        LazyVerticalStaggeredGrid(
-                            columns = StaggeredGridCells.Fixed(2),
-                            contentPadding = PaddingValues(14.dp, 8.dp, 14.dp, 26.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalItemSpacing = 12.dp,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            items(statuses, key = { it.path }) { status ->
-                                StatusCard(
-                                    status = status,
-                                    motion = motion,
-                                    onCardClick = { openFile(context, status.file) },
-                                    onMenuClick = { selectedStatus = status }
-                                )
+                    when {
+                        statuses.isNotEmpty() -> {
+                            LazyVerticalStaggeredGrid(
+                                columns = StaggeredGridCells.Fixed(2),
+                                contentPadding = PaddingValues(14.dp, 8.dp, 14.dp, 26.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalItemSpacing = 12.dp,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(statuses, key = { it.path }) { status ->
+                                    StatusCard(
+                                        status = status,
+                                        motion = motion,
+                                        onCardClick = { openFile(context, status.file) },
+                                        onMenuClick = { selectedStatus = status }
+                                    )
+                                }
                             }
                         }
-                    } else if (!viewModel.isFetching) {
-                        EmptyGlassState(
-                            text = if (tab == StatusTab.Saved) {
-                                stringResource(R.string.no_saved_statuses)
-                            } else {
-                                stringResource(R.string.no_statuses_available)
-                            }
-                        )
+
+                        !viewModel.isFetching -> {
+                            EmptyGlassState(
+                                text = if (tab == StatusTab.Saved) {
+                                    stringResource(R.string.no_saved_statuses)
+                                } else {
+                                    stringResource(R.string.no_statuses_available)
+                                }
+                            )
+                        }
                     }
                 }
             } else {
                 PermissionGlassState {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        context.startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                            data = "package:${context.packageName}".toUri()
-                        })
-                    } else {
-                        legacyPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
-                    }
+                    openStorageSettings(context, legacyPermissionLauncher)
                 }
             }
         }
@@ -320,7 +313,7 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
             )
         }
 
-        if (selectedStatus != null) {
+        selectedStatus?.let { status ->
             ModalBottomSheet(
                 onDismissRequest = { selectedStatus = null },
                 sheetState = sheetState,
@@ -329,13 +322,13 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
                 dragHandle = null
             ) {
                 LiquidActionSheet(
-                    status = selectedStatus!!,
+                    status = status,
                     isSavedTab = viewModel.selectedTab == StatusTab.Saved,
                     onClose = {
                         scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null }
                     },
                     onSave = {
-                        viewModel.saveStatus(selectedStatus!!) { success ->
+                        viewModel.saveStatus(status) { success ->
                             Toast.makeText(
                                 context,
                                 context.getString(if (success) R.string.saved else R.string.failed_to_save),
@@ -345,7 +338,7 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
                         }
                     },
                     onDelete = {
-                        viewModel.deleteStatus(selectedStatus!!) { success ->
+                        viewModel.deleteStatus(status) { success ->
                             Toast.makeText(
                                 context,
                                 context.getString(if (success) R.string.deleted else R.string.failed_to_delete),
@@ -355,11 +348,11 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
                         }
                     },
                     onShare = {
-                        shareOrRepost(context, selectedStatus!!.file, share = true)
+                        shareOrRepost(context, status.file, share = true)
                         scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null }
                     },
                     onRepost = {
-                        shareOrRepost(context, selectedStatus!!.file, share = false)
+                        shareOrRepost(context, status.file, share = false)
                         scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null }
                     }
                 )
@@ -374,9 +367,7 @@ private fun LiquidBackdrop(motion: MotionVector) {
     val phase by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            tween(12000, easing = FastOutSlowInEasing)
-        ),
+        animationSpec = infiniteRepeatable(tween(12000, easing = FastOutSlowInEasing)),
         label = "phase"
     )
     val offsetX = motion.x * 2.4f + phase * 30f
@@ -392,10 +383,7 @@ private fun LiquidBackdrop(motion: MotionVector) {
                 }
                 .background(
                     Brush.radialGradient(
-                        listOf(
-                            Color(0xFF4B8DFF).copy(alpha = 0.20f),
-                            Color.Transparent
-                        ),
+                        listOf(Color(0xFF4B8DFF).copy(alpha = 0.20f), Color.Transparent),
                         radius = 480f
                     ),
                     CircleShape
@@ -412,10 +400,7 @@ private fun LiquidBackdrop(motion: MotionVector) {
                 }
                 .background(
                     Brush.radialGradient(
-                        listOf(
-                            Color(0xFFFF4FA3).copy(alpha = 0.15f),
-                            Color.Transparent
-                        ),
+                        listOf(Color(0xFFFF4FA3).copy(alpha = 0.15f), Color.Transparent),
                         radius = 420f
                     ),
                     CircleShape
@@ -429,10 +414,7 @@ private fun LiquidBackdrop(motion: MotionVector) {
                 .graphicsLayer { rotationZ = motion.x * 0.16f }
                 .background(
                     Brush.radialGradient(
-                        listOf(
-                            Color(0xFF6C63FF).copy(alpha = 0.11f),
-                            Color.Transparent
-                        ),
+                        listOf(Color(0xFF6C63FF).copy(alpha = 0.11f), Color.Transparent),
                         radius = 360f
                     ),
                     CircleShape
@@ -449,11 +431,12 @@ private fun HeaderGlass(motion: MotionVector) {
         animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = "title_lift"
     )
+
     Row(
         Modifier
             .fillMaxWidth()
             .padding(horizontal = 18.dp, vertical = 12.dp)
-            .graphicsLayer { translationY = titleLift.toPx() },
+            .graphicsLayer { translationY = titleLift.valueOrZero() },
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {
@@ -479,10 +462,17 @@ private fun HeaderGlass(motion: MotionVector) {
                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.36f)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.MoreHoriz, contentDescription = null)
+            Icon(Icons.Default.MoreHoriz, contentDescription = stringResource(R.string.menu))
         }
     }
 }
+
+private fun androidx.compose.ui.unit.Dp.valueOrZero(): Float =
+    value * android.util.TypedValue.applyDimension(
+        android.util.TypedValue.COMPLEX_UNIT_DIP,
+        1f,
+        android.content.res.Resources.getSystem().displayMetrics
+    )
 
 @Composable
 private fun GlassTabBar(
@@ -495,25 +485,19 @@ private fun GlassTabBar(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(tabs) { tab ->
+        items(tabs, key = { it.title }) { tab ->
             val active = tab == selected
             Box(
                 Modifier
                     .clip(RoundedCornerShape(16.dp))
                     .background(
-                        if (active) {
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                        } else {
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.28f)
-                        }
+                        if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                        else MaterialTheme.colorScheme.surface.copy(alpha = 0.28f)
                     )
                     .border(
                         1.dp,
-                        if (active) {
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
-                        } else {
-                            Color.White.copy(alpha = 0.10f)
-                        },
+                        if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                        else Color.White.copy(alpha = 0.10f),
                         RoundedCornerShape(16.dp)
                     )
                     .clickable { onSelected(tab) }
@@ -547,9 +531,7 @@ private fun StatusCard(
             .data(status.file)
             .crossfade(true)
             .apply {
-                if (status.isVideo) {
-                    decoderFactory(VideoFrameDecoder.Factory())
-                }
+                if (status.isVideo) decoderFactory(VideoFrameDecoder.Factory())
             }
             .build()
     )
@@ -609,9 +591,7 @@ private fun StatusCard(
             }
             IconButton(
                 onClick = onMenuClick,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(6.dp)
+                modifier = Modifier.align(Alignment.TopEnd).padding(6.dp)
             ) {
                 Icon(
                     Icons.Default.MoreHoriz,
@@ -653,16 +633,10 @@ private fun EmptyGlassState(text: String) {
     ) {
         GlassSurface(Modifier.fillMaxWidth().padding(10.dp)) {
             Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(28.dp),
+                Modifier.fillMaxWidth().padding(28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp
-                )
+                Text(text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             }
         }
     }
@@ -678,9 +652,7 @@ private fun PermissionGlassState(onClick: () -> Unit) {
     ) {
         GlassSurface(Modifier.fillMaxWidth().padding(12.dp)) {
             Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(28.dp),
+                Modifier.fillMaxWidth().padding(28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -823,9 +795,7 @@ private fun LiquidButton(text: String, onClick: () -> Unit) {
     val phase by rememberInfiniteTransition(label = "button_phase").animateFloat(
         initialValue = 0f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            tween(5000, easing = FastOutSlowInEasing)
-        ),
+        animationSpec = infiniteRepeatable(tween(5000, easing = FastOutSlowInEasing)),
         label = "button_phase_value"
     )
 
@@ -844,14 +814,8 @@ private fun LiquidButton(text: String, onClick: () -> Unit) {
                         Color(0xFF4CCBFF),
                         Color(0xFF7B5CFF)
                     ),
-                    start = androidx.compose.ui.geometry.Offset(
-                        -900f + phase * 1800f,
-                        0f
-                    ),
-                    end = androidx.compose.ui.geometry.Offset(
-                        500f + phase * 1800f,
-                        0f
-                    ),
+                    start = androidx.compose.ui.geometry.Offset(-900f + phase * 1800f, 0f),
+                    end = androidx.compose.ui.geometry.Offset(500f + phase * 1800f, 0f),
                     tileMode = TileMode.Mirror
                 )
             )
@@ -892,12 +856,27 @@ private fun checkPermission(context: Context): Boolean = if (Build.VERSION.SDK_I
     ) == PackageManager.PERMISSION_GRANTED
 }
 
+private fun openStorageSettings(
+    context: Context,
+    legacyPermissionLauncher: androidx.activity.result.ActivityResultLauncher<String>
+) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        try {
+            context.startActivity(
+                Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                }
+            )
+        } catch (_: Exception) {
+            context.startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+        }
+    } else {
+        legacyPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+    }
+}
+
 private fun openFile(context: Context, file: File) {
-    val uri = FileProvider.getUriForFile(
-        context,
-        "${context.packageName}.provider",
-        file
-    )
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
     val mime = when (file.extension.lowercase(Locale.getDefault())) {
         "mp4", "3gp", "mkv", "webm" -> "video/*"
         else -> "image/*"
@@ -919,11 +898,7 @@ private fun openFile(context: Context, file: File) {
 }
 
 private fun shareOrRepost(context: Context, file: File, share: Boolean) {
-    val uri = FileProvider.getUriForFile(
-        context,
-        "${context.packageName}.provider",
-        file
-    )
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
     val mime = when (file.extension.lowercase(Locale.getDefault())) {
         "mp4", "3gp", "mkv", "webm" -> "video/*"
         else -> "image/*"
@@ -936,18 +911,12 @@ private fun shareOrRepost(context: Context, file: File, share: Boolean) {
     }
     try {
         context.startActivity(
-            if (share) {
-                Intent.createChooser(intent, context.getString(R.string.share_via))
-            } else {
-                intent
-            }
+            if (share) Intent.createChooser(intent, context.getString(R.string.share_via)) else intent
         )
     } catch (_: Exception) {
         Toast.makeText(
             context,
-            context.getString(
-                if (!share) R.string.whatsapp_not_installed else R.string.no_app_to_handle
-            ),
+            context.getString(if (!share) R.string.whatsapp_not_installed else R.string.no_app_to_handle),
             Toast.LENGTH_SHORT
         ).show()
     }
