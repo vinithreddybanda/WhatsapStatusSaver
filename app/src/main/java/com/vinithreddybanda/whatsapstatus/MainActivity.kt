@@ -29,6 +29,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
@@ -113,6 +114,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.vinithreddybanda.whatsapstatus.model.Status
 import com.vinithreddybanda.whatsapstatus.ui.theme.WhatsapStatusTheme
 import kotlinx.coroutines.launch
@@ -519,6 +521,7 @@ private fun StatusCard(
     val painter = rememberAsyncImagePainter(
         model = ImageRequest.Builder(context)
             .data(status.file)
+            .crossfade(true)
             .build()
     )
     val interactions = remember { MutableInteractionSource() }
