@@ -22,7 +22,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.InfiniteRepeatableSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -30,7 +29,6 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
@@ -114,10 +112,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.rememberAsyncImagePainter
-import coil3.video.VideoFrameDecoder
 import coil3.request.ImageRequest
-import coil3.request.crossfade
-import coil3.request.decoderFactory
 import com.vinithreddybanda.whatsapstatus.model.Status
 import com.vinithreddybanda.whatsapstatus.ui.theme.WhatsapStatusTheme
 import kotlinx.coroutines.launch
@@ -522,18 +517,9 @@ private fun StatusCard(
 ) {
     val context = LocalContext.current
     val painter = rememberAsyncImagePainter(
-        model = if (status.isVideo) {
-            ImageRequest.Builder(context)
-                .data(status.file)
-                .crossfade(true)
-                .decoderFactory(VideoFrameDecoder.Factory())
-                .build()
-        } else {
-            ImageRequest.Builder(context)
-                .data(status.file)
-                .crossfade(true)
-                .build()
-        }
+        model = ImageRequest.Builder(context)
+            .data(status.file)
+            .build()
     )
     val interactions = remember { MutableInteractionSource() }
     val pressed by interactions.collectIsPressedAsState()
