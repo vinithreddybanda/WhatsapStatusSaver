@@ -96,7 +96,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import coil.decode.VideoFrameDecoder
@@ -109,17 +108,13 @@ import java.util.Date
 import java.util.Locale
 import kotlin.random.Random
 
-// Thread-safe SimpleDateFormat cache to avoid creating new instances on each timestamp format call
 private val dateFormatThreadLocal = ThreadLocal.withInitial {
     SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
 }
 
-
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-
         installSplashScreen()
-
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
@@ -143,7 +138,6 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
     val lifecycleOwner = LocalLifecycleOwner.current
     var hasPermission by remember { mutableStateOf(checkPermission(context)) }
 
-    // Bottom Sheet State
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var selectedStatus by remember { mutableStateOf<Status?>(null) }
     val scope = rememberCoroutineScope()
@@ -182,23 +176,16 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     LaunchedEffect(hasPermission) {
-        if (hasPermission) {
-            viewModel.getStatuses()
-        }
+        if (hasPermission) viewModel.getStatuses()
     }
 
-    // Pager State
-    // Static tabs list - no need for remember as it's already constant
     val tabs = listOf(StatusTab.All, StatusTab.Images, StatusTab.Videos, StatusTab.Saved)
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { tabs.size })
 
-    // Sync Pager with ViewModel Tab Selection
     LaunchedEffect(viewModel.selectedTab) {
         val index = tabs.indexOf(viewModel.selectedTab)
         if (index >= 0 && pagerState.currentPage != index) {
@@ -206,17 +193,13 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
         }
     }
 
-    // Sync ViewModel Tab Selection with Pager
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.currentPage }.collect { page ->
-             val tab = tabs[page]
-             if (viewModel.selectedTab != tab) {
-                 viewModel.onTabSelected(tab)
-             }
+            val tab = tabs[page]
+            if (viewModel.selectedTab != tab) viewModel.onTabSelected(tab)
         }
     }
 
-    // Blur effect
     val blurEffect = if (selectedStatus != null) Modifier.blur(16.dp) else Modifier
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -225,7 +208,6 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
             topBar = {
                 TopAppBar(
                     title = { Text(stringResource(R.string.status_saver)) },
-                    // Actions (Menu) removed as requested
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         titleContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -235,16 +217,11 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
             }
         ) { innerPadding ->
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
+                modifier = Modifier.fillMaxSize().padding(innerPadding)
             ) {
                 if (hasPermission) {
-                    // Tab Row (Chips)
                     LazyRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                         contentPadding = PaddingValues(end = 16.dp)
                     ) {
                         items(tabs) { tab ->
@@ -252,13 +229,11 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
                             FilterChip(
                                 selected = isSelected,
                                 onClick = {
-                                    scope.launch {
-                                        pagerState.animateScrollToPage(tabs.indexOf(tab))
-                                    }
+                                    scope.launch { pagerState.animateScrollToPage(tabs.indexOf(tab)) }
                                 },
                                 label = {
                                     Text(
-                                        text = when(tab) {
+                                        text = when (tab) {
                                             StatusTab.All -> stringResource(R.string.tab_all)
                                             StatusTab.Images -> stringResource(R.string.tab_images)
                                             StatusTab.Videos -> stringResource(R.string.tab_videos)
@@ -270,21 +245,20 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
                                 modifier = Modifier.padding(end = 8.dp),
                                 shape = RoundedCornerShape(24.dp),
                                 colors = FilterChipDefaults.filterChipColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant, // Unselected BG
-                                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant, // Unselected Label
-                                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer, // Selected BG
-                                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer // Selected Label
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
                                 ),
                                 border = FilterChipDefaults.filterChipBorder(
                                     enabled = true,
                                     selected = isSelected,
-                                     borderColor = Color.Transparent
+                                    borderColor = Color.Transparent
                                 )
                             )
                         }
                     }
 
-                    // Horizontal Pager for Swipeable Tabs
                     HorizontalPager(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize(),
@@ -305,8 +279,8 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
                             ) {
                                 items(statuses, key = { it.path }) { status ->
                                     StatusCard(
-                                        status,
-                                        viewModel,
+                                        status = status,
+                                        viewModel = viewModel,
                                         onCardClick = { openFile(context, status.file) },
                                         onMenuClick = { selectedStatus = status }
                                     )
@@ -314,14 +288,13 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
                             }
                         } else if (!viewModel.isFetching) {
                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                 Text(
-                                     text = if (tab == StatusTab.Saved) stringResource(R.string.no_saved_statuses) else stringResource(R.string.no_statuses_available),
-                                     color = MaterialTheme.colorScheme.onSurfaceVariant
-                                 )
+                                Text(
+                                    text = if (tab == StatusTab.Saved) stringResource(R.string.no_saved_statuses) else stringResource(R.string.no_statuses_available),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
-
                 } else {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -345,20 +318,16 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
         }
     }
 
-    // Pinterest-style Bottom Sheet with manual blur simulation
     if (selectedStatus != null) {
-        // Overlay for click handling (transparent)
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clickable { selectedStatus = null }
+            modifier = Modifier.fillMaxSize().clickable { selectedStatus = null }
         )
 
         ModalBottomSheet(
             onDismissRequest = { selectedStatus = null },
             sheetState = sheetState,
-            containerColor = Color.Transparent, // Transparent to allow custom floating layout
-            scrimColor = Color.Transparent, // Transparent because we blur the background
+            containerColor = Color.Transparent,
+            scrimColor = Color.Transparent,
             dragHandle = null
         ) {
             PinterestBottomSheetContent(
@@ -366,30 +335,30 @@ fun HomeScreen(viewModel: MainViewModel = viewModel()) {
                 isSavedTab = viewModel.selectedTab == StatusTab.Saved,
                 onClose = {
                     scope.launch { sheetState.hide() }.invokeOnCompletion {
-                         if (!sheetState.isVisible) selectedStatus = null
+                        if (!sheetState.isVisible) selectedStatus = null
                     }
                 },
                 onSave = {
                     viewModel.saveStatus(selectedStatus!!) { success ->
-                         val message = if (success) context.getString(R.string.saved) else context.getString(R.string.failed_to_save)
-                         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                         scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null }
+                        val message = if (success) context.getString(R.string.saved) else context.getString(R.string.failed_to_save)
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                        scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null }
                     }
                 },
                 onDelete = {
-                     viewModel.deleteStatus(selectedStatus!!) { success ->
-                         val message = if (success) context.getString(R.string.deleted) else context.getString(R.string.failed_to_delete)
-                         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                         scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null }
+                    viewModel.deleteStatus(selectedStatus!!) { success ->
+                        val message = if (success) context.getString(R.string.deleted) else context.getString(R.string.failed_to_delete)
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                        scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null }
                     }
                 },
                 onShare = {
-                     shareOrRepost(context, selectedStatus!!.file, share = true)
-                     scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null }
+                    shareOrRepost(context, selectedStatus!!.file, share = true)
+                    scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null }
                 },
                 onRepost = {
-                     shareOrRepost(context, selectedStatus!!.file, share = false)
-                     scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null }
+                    shareOrRepost(context, selectedStatus!!.file, share = false)
+                    scope.launch { sheetState.hide() }.invokeOnCompletion { selectedStatus = null }
                 }
             )
         }
@@ -408,33 +377,17 @@ fun PinterestBottomSheetContent(
 ) {
     val context = LocalContext.current
 
-    // Custom Layout for floating image
-    Box(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        // The Background Sheet
+    Box(modifier = Modifier.fillMaxWidth()) {
         Surface(
-            modifier = Modifier
-                .padding(top = 50.dp) // Push down to let image float on top
-                .fillMaxWidth(),
+            modifier = Modifier.padding(top = 50.dp).fillMaxWidth(),
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-            color = MaterialTheme.colorScheme.surfaceContainer // Use theme surface color
+            color = MaterialTheme.colorScheme.surfaceContainer
         ) {
             Column(
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 32.dp)
+                modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 32.dp)
             ) {
-                // Header Row (Close Button)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp, bottom = 8.dp)
-                ) {
-                    IconButton(
-                        onClick = onClose,
-                        modifier = Modifier.align(Alignment.CenterStart)
-                    ) {
+                Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 8.dp)) {
+                    IconButton(onClick = onClose, modifier = Modifier.align(Alignment.CenterStart)) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = stringResource(R.string.close),
@@ -443,41 +396,20 @@ fun PinterestBottomSheetContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp)) // Space for the bottom half of the image
+                Spacer(modifier = Modifier.height(20.dp))
 
-                // Actions
                 if (isSavedTab) {
-                    PinterestActionItem(
-                        icon = Icons.Outlined.Delete,
-                        text = stringResource(R.string.delete),
-                        onClick = onDelete
-                    )
+                    PinterestActionItem(Icons.Outlined.Delete, stringResource(R.string.delete), onDelete)
                 } else {
-                    PinterestActionItem(
-                        icon = Icons.Outlined.PushPin,
-                        text = stringResource(R.string.save),
-                        onClick = onSave
-                    )
+                    PinterestActionItem(Icons.Outlined.PushPin, stringResource(R.string.save), onSave)
                 }
-
-                PinterestActionItem(
-                    icon = Icons.Outlined.Share,
-                    text = stringResource(R.string.share),
-                    onClick = onShare
-                )
-                PinterestActionItem(
-                    icon = Icons.AutoMirrored.Outlined.Send,
-                    text = stringResource(R.string.repost_to_whatsapp),
-                    onClick = onRepost
-                )
+                PinterestActionItem(Icons.Outlined.Share, stringResource(R.string.share), onShare)
+                PinterestActionItem(Icons.AutoMirrored.Outlined.Send, stringResource(R.string.repost_to_whatsapp), onRepost)
             }
         }
 
-        // The Floating Image (Centered on top edge of Surface)
         Card(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .size(100.dp),
+            modifier = Modifier.align(Alignment.TopCenter).size(100.dp),
             shape = RoundedCornerShape(16.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
@@ -491,24 +423,17 @@ fun PinterestBottomSheetContent(
             Image(
                 painter = painter,
                 contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
             )
         }
     }
 }
 
 @Composable
-fun PinterestActionItem(
-    icon: ImageVector,
-    text: String,
-    onClick: () -> Unit
-) {
+fun PinterestActionItem(icon: ImageVector, text: String, onClick: () -> Unit) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 8.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -520,10 +445,7 @@ fun PinterestActionItem(
         Spacer(modifier = Modifier.width(16.dp))
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyLarge.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
-            ),
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp),
             color = MaterialTheme.colorScheme.onSurface
         )
     }
@@ -537,11 +459,8 @@ fun StatusCard(
     onCardClick: () -> Unit
 ) {
     val context = LocalContext.current
-
-    // Randomized skeleton aspect ratio to mimic staggered grid content
     val skeletonRatio = remember(status.path) { Random.nextDouble(0.7, 1.2).toFloat() }
 
-    // Use AsyncImagePainter to track loading state
     val builder = remember(status.path) {
         ImageRequest.Builder(context)
             .data(status.file)
@@ -549,47 +468,31 @@ fun StatusCard(
             .size(512)
             .memoryCacheKey(status.path)
             .apply {
-                if (status.isVideo) {
-                    decoderFactory(VideoFrameDecoder.Factory())
-                }
+                if (status.isVideo) decoderFactory(VideoFrameDecoder.Factory())
             }
             .build()
     }
 
     val painter = rememberAsyncImagePainter(model = builder)
-    val isImageLoaded = painter.state is AsyncImagePainter.State.Success
+    val isImageLoaded = painter.state is coil.compose.AsyncImagePainter.State.Success
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onCardClick)
-    ) {
-        // Image Card
+    Column(modifier = Modifier.fillMaxWidth().clickable(onClick = onCardClick)) {
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                // If not loaded, use random aspect ratio (skeleton).
-                // If loaded, let content wrap height (FillWidth).
-                .then(
-                    if (!isImageLoaded) Modifier.aspectRatio(skeletonRatio)
-                    else Modifier.wrapContentHeight()
-                ),
+            modifier = Modifier.fillMaxWidth().then(
+                if (!isImageLoaded) Modifier.aspectRatio(skeletonRatio) else Modifier.wrapContentHeight()
+            ),
             shape = RoundedCornerShape(12.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Box {
-                // Skeleton Background
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                    modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)
                 )
-
                 Image(
                     painter = painter,
                     contentDescription = null,
-                    contentScale = ContentScale.FillWidth,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    contentScale = ContentScale.FillWidth
                 )
 
                 if (status.isVideo) {
@@ -597,41 +500,31 @@ fun StatusCard(
                         imageVector = Icons.Filled.PlayArrow,
                         contentDescription = stringResource(R.string.video),
                         tint = Color.White,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(32.dp)
+                        modifier = Modifier.align(Alignment.Center).size(32.dp)
                     )
                 }
             }
         }
 
-        // Caption and Menu Row below the image
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp, start = 4.dp, end = 0.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, start = 4.dp, end = 0.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Timestamp
             Text(
                 text = formatTimestamp(status.timestamp),
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface
-                ),
-                modifier = Modifier.weight(1f),
-                maxLines = 1
+                )
             )
 
-            // 3-dot menu icon
-            IconButton(
-                onClick = onMenuClick, // Trigger Bottom Sheet
-                modifier = Modifier.size(24.dp)
-            ) {
+            IconButton(onClick = onMenuClick, modifier = Modifier.size(24.dp)) {
                 Icon(
-                    Icons.Filled.MoreHoriz,
+                    imageVector = Icons.Filled.MoreHoriz,
                     contentDescription = stringResource(R.string.more_options),
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(20.dp)
@@ -665,11 +558,7 @@ fun shareOrRepost(context: Context, file: File, share: Boolean) {
         type = if (file.extension == "mp4") "video/mp4" else "image/*"
         putExtra(Intent.EXTRA_STREAM, uri)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-
-        if (!share) {
-            // Repost specifically to WhatsApp
-            setPackage("com.whatsapp")
-        }
+        if (!share) setPackage("com.whatsapp")
     }
 
     try {
@@ -684,18 +573,12 @@ fun checkPermission(context: Context): Boolean {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
         Environment.isExternalStorageManager()
     } else {
-        ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.READ_EXTERNAL_STORAGE
-        ) == PackageManager.PERMISSION_GRANTED
+        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
     }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview() {
-    WhatsapStatusTheme {
-        // You can preview a single card here if you like
-        // StatusCard( ... )
-    }
+    WhatsapStatusTheme { }
 }
