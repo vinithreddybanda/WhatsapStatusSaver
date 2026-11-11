@@ -79,9 +79,14 @@ class MainViewModel : ViewModel() {
             }
 
             try {
+                var firstBatch = true
+                var receivedAny = false
                 repository.streamStatuses().collect { batch ->
-                    statusList = statusList + batch
+                    statusList = if (firstBatch) batch else statusList + batch
+                    firstBatch = false
+                    receivedAny = true
                 }
+                if (!receivedAny) statusList = emptyList()
                 hasLoadedStatuses = true
                 lastSuccessfulScanAt = System.currentTimeMillis()
             } catch (cancelled: CancellationException) {
