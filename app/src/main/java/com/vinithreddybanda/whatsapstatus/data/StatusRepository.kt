@@ -82,7 +82,7 @@ class StatusRepository {
             val destination = File(savedPath, status.title)
             status.file.copyTo(destination, overwrite = true)
             true
-        } catch (_: IOException) {
+        } catch (_: Exception) {
             false
         }
     }
