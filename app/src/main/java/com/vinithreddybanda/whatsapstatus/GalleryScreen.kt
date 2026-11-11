@@ -32,10 +32,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.items as lazyRowItems
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
-import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredGridItems
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -237,7 +237,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                         contentPadding = PaddingValues(horizontal = 18.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(tabs) { tab ->
+                        lazyRowItems(tabs) { tab ->
                             val selected = pagerState.currentPage == tabs.indexOf(tab)
                             FilterChip(
                                 selected = selected,
@@ -314,7 +314,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                                 verticalItemSpacing = 15.dp,
                                 modifier = Modifier.fillMaxSize()
                             ) {
-                                items(
+                                staggeredGridItems(
                                     items = statuses,
                                     key = { it.path },
                                     contentType = { "status-card" }
@@ -561,7 +561,7 @@ private fun LoadingGallery() {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalItemSpacing = 15.dp
     ) {
-        items(6) { index ->
+        staggeredGridItems(6) { index ->
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
