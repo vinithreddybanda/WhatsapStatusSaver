@@ -5,6 +5,7 @@ import android.os.Environment
 import com.vinithreddybanda.whatsapstatus.model.Status
 import java.io.File
 import java.io.IOException
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -36,10 +37,10 @@ class StatusRepository {
     private val supportedExtensions = imageExtensions + videoExtensions
 
     private val File.isSupportedMedia: Boolean
-        get() = extension.lowercase() in supportedExtensions
+        get() = extension.lowercase(Locale.ROOT) in supportedExtensions
 
     private val File.isVideoFile: Boolean
-        get() = extension.lowercase() in videoExtensions
+        get() = extension.lowercase(Locale.ROOT) in videoExtensions
 
     /**
      * Emits sorted media in small batches. The UI can populate progressively instead
