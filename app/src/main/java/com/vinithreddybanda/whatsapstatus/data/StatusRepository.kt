@@ -4,7 +4,6 @@ import android.graphics.BitmapFactory
 import android.os.Environment
 import com.vinithreddybanda.whatsapstatus.model.Status
 import java.io.File
-import java.io.IOException
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
