@@ -7,5 +7,6 @@ data class Status(
     val title: String,
     val path: String,
     val isVideo: Boolean,
-    val timestamp: Long = file.lastModified() // Added timestamp field
+    val timestamp: Long = file.lastModified(),
+    val aspectRatio: Float? = null
 )
