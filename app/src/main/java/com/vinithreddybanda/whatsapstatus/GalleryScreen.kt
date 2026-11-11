@@ -140,7 +140,11 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
             try {
                 settingsLauncher.launch(intent)
             } catch (_: Exception) {
-                settingsLauncher.launch(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+                try {
+                    settingsLauncher.launch(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+                } catch (_: Exception) {
+                    Toast.makeText(context, "Open app settings to allow file access", Toast.LENGTH_LONG).show()
+                }
             }
         } else {
             legacyPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
@@ -162,8 +166,6 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
         if (hasPermission) {
             showAccessSheet = false
             viewModel.getStatuses()
-        } else {
-            showAccessSheet = true
         }
     }
 
