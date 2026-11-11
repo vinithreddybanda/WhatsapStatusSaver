@@ -561,7 +561,7 @@ private fun LoadingGallery() {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalItemSpacing = 15.dp
     ) {
-        staggeredGridItems(6) { index ->
+        items(6) { index ->
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
