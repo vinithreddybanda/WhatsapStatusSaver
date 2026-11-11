@@ -1,6 +1,7 @@
 package com.vinithreddybanda.whatsapstatus
 
 import android.Manifest
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -838,6 +839,7 @@ private fun openStatusFile(context: Context, file: File) {
         val mimeType = mediaMimeType(file)
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, mimeType)
+            clipData = ClipData.newUri(context.contentResolver, file.name, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         context.startActivity(intent)
@@ -852,6 +854,7 @@ private fun shareStatusFile(context: Context, file: File, share: Boolean) {
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = mediaMimeType(file)
             putExtra(Intent.EXTRA_STREAM, uri)
+            clipData = ClipData.newUri(context.contentResolver, file.name, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             if (!share) setPackage("com.whatsapp")
         }
