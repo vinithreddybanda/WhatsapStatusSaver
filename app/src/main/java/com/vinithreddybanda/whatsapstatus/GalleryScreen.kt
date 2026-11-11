@@ -84,6 +84,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -95,6 +96,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import coil.compose.rememberAsyncImagePainter
 import coil.decode.VideoFrameDecoder
 import coil.request.CachePolicy
@@ -369,6 +374,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                 scrimColor = Color.Black.copy(alpha = 0.32f),
                 contentWindowInsets = { WindowInsets(0, 0, 0, 0) }
             ) {
+                HideModalStatusBar()
                 PermissionSheetContent(
                     onContinue = {
                         scope.launch {
@@ -405,6 +411,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                     )
                 }
             ) {
+                HideModalStatusBar()
                 StatusActionsSheet(
                     status = status,
                     isSaved = viewModel.selectedTab == StatusTab.Saved,
@@ -457,6 +464,34 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                 )
             }
         }
+    }
+}
+
+
+@Composable
+private fun HideModalStatusBar() {
+    val view = LocalView.current
+    val dialogWindow = remember(view) {
+        var parent = view.parent
+        var foundWindow: android.view.Window? = null
+        while (parent != null) {
+            if (parent is DialogWindowProvider) {
+                foundWindow = parent.window
+                break
+            }
+            parent = parent.parent
+        }
+        foundWindow
+    }
+
+    DisposableEffect(dialogWindow) {
+        dialogWindow?.decorView?.post {
+            val controller = WindowCompat.getInsetsController(dialogWindow, dialogWindow.decorView)
+            controller.hide(WindowInsetsCompat.Type.statusBars())
+            controller.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
+        onDispose { }
     }
 }
 
