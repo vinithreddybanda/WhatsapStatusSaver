@@ -368,7 +368,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                 sheetState = accessSheetState,
                 containerColor = MaterialTheme.colorScheme.surface,
                 scrimColor = Color.Black.copy(alpha = 0.32f),
-                windowInsets = WindowInsets(0, 0, 0, 0)
+                contentWindowInsets = { WindowInsets(0, 0, 0, 0) }
             ) {
                 PermissionSheetContent(
                     onContinue = {
@@ -395,7 +395,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                 shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp),
                 containerColor = MaterialTheme.colorScheme.surface,
                 scrimColor = Color.Black.copy(alpha = 0.26f),
-                windowInsets = WindowInsets(0, 0, 0, 0),
+                contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
                 dragHandle = {
                     Box(
                         Modifier
