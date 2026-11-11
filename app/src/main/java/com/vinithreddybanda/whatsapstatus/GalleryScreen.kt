@@ -342,7 +342,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                                 }
                             }
                         }
-                        viewModel.isFetching || (tab == StatusTab.Saved && viewModel.isSavedFetching) -> {
+                        (tab != StatusTab.Saved && viewModel.isFetching) || (tab == StatusTab.Saved && viewModel.isSavedFetching) -> {
                             LoadingGallery()
                         }
                         else -> {
@@ -407,7 +407,12 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                 StatusActionsSheet(
                     status = status,
                     isSaved = viewModel.selectedTab == StatusTab.Saved,
-                    onClose = { selectedStatus = null },
+                    onClose = {
+                        scope.launch {
+                            actionSheetState.hide()
+                            selectedStatus = null
+                        }
+                    },
                     onSave = {
                         viewModel.saveStatus(status) { success ->
                             Toast.makeText(
@@ -415,7 +420,10 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                                 if (success) "Saved to StatusSaver" else "Couldn't save this status",
                                 Toast.LENGTH_SHORT
                             ).show()
-                            selectedStatus = null
+                            scope.launch {
+                                actionSheetState.hide()
+                                selectedStatus = null
+                            }
                         }
                     },
                     onDelete = {
@@ -425,16 +433,25 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                                 if (success) "Removed from saved" else "Couldn't delete this status",
                                 Toast.LENGTH_SHORT
                             ).show()
-                            selectedStatus = null
+                            scope.launch {
+                                actionSheetState.hide()
+                                selectedStatus = null
+                            }
                         }
                     },
                     onShare = {
-                        shareStatusFile(context, status.file, share = true)
-                        selectedStatus = null
+                        scope.launch {
+                            actionSheetState.hide()
+                            selectedStatus = null
+                            shareStatusFile(context, status.file, share = true)
+                        }
                     },
                     onRepost = {
-                        shareStatusFile(context, status.file, share = false)
-                        selectedStatus = null
+                        scope.launch {
+                            actionSheetState.hide()
+                            selectedStatus = null
+                            shareStatusFile(context, status.file, share = false)
+                        }
                     }
                 )
             }
