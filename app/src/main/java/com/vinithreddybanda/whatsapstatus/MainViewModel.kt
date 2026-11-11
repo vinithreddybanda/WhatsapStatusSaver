@@ -23,6 +23,7 @@ sealed class StatusTab(val title: String) {
 class MainViewModel : ViewModel() {
     private val repository = StatusRepository()
     private val pageSize = 24
+    private val refreshIntervalMs = 30_000L
 
     var statusList by mutableStateOf<List<Status>>(emptyList())
         private set
@@ -43,6 +44,7 @@ class MainViewModel : ViewModel() {
     private var savedVisibleItemLimit by mutableStateOf(pageSize)
     private var hasLoadedStatuses = false
     private var hasLoadedSavedStatuses = false
+    private var lastSuccessfulScanAt = 0L
     private var refreshJob: Job? = null
     private var savedLoadJob: Job? = null
 
@@ -61,21 +63,19 @@ class MainViewModel : ViewModel() {
 
     fun onTabSelected(tab: StatusTab) {
         selectedTab = tab
-        if (tab == StatusTab.Saved && !hasLoadedSavedStatuses) {
-            loadSavedStatuses()
-        }
+        if (tab == StatusTab.Saved && !hasLoadedSavedStatuses) loadSavedStatuses()
     }
 
     fun getStatuses(forceRefresh: Boolean = false) {
         if (refreshJob?.isActive == true) return
-        if (hasLoadedStatuses && !forceRefresh) return
+        val cacheIsFresh = System.currentTimeMillis() - lastSuccessfulScanAt < refreshIntervalMs
+        if (hasLoadedStatuses && !forceRefresh && cacheIsFresh) return
 
         refreshJob = viewModelScope.launch {
             isFetching = true
-            if (forceRefresh) {
+            if (forceRefresh || !hasLoadedStatuses) {
                 statusList = emptyList()
                 visibleItemLimit = pageSize
-                hasLoadedStatuses = false
             }
 
             try {
@@ -83,8 +83,11 @@ class MainViewModel : ViewModel() {
                     statusList = statusList + batch
                 }
                 hasLoadedStatuses = true
+                lastSuccessfulScanAt = System.currentTimeMillis()
             } catch (cancelled: CancellationException) {
                 throw cancelled
+            } catch (_: Exception) {
+                // Keep any batches already displayed. A later resume or manual refresh retries.
             } finally {
                 isFetching = false
             }
@@ -125,11 +128,8 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    private fun loadSavedStatuses(forceRefresh: Boolean = false) {
-        if (savedLoadJob?.isActive == true) {
-            if (!forceRefresh) return
-            savedLoadJob?.cancel()
-        }
+    private fun loadSavedStatuses() {
+        if (savedLoadJob?.isActive == true) return
 
         savedLoadJob = viewModelScope.launch {
             isSavedFetching = true
@@ -137,6 +137,10 @@ class MainViewModel : ViewModel() {
                 savedStatusList = repository.getSavedStatuses()
                 hasLoadedSavedStatuses = true
                 savedVisibleItemLimit = pageSize
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // Keep the saved tab usable if a storage provider temporarily fails.
             } finally {
                 isSavedFetching = false
             }
