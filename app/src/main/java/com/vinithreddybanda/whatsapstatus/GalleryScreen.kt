@@ -485,11 +485,13 @@ private fun HideModalStatusBar() {
     }
 
     DisposableEffect(dialogWindow) {
-        dialogWindow?.decorView?.post {
-            val controller = WindowCompat.getInsetsController(dialogWindow, dialogWindow.decorView)
-            controller.hide(WindowInsetsCompat.Type.statusBars())
-            controller.systemBarsBehavior =
-                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        dialogWindow?.let { window ->
+            window.decorView.post {
+                val controller = WindowCompat.getInsetsController(window, window.decorView)
+                controller.hide(WindowInsetsCompat.Type.statusBars())
+                controller.systemBarsBehavior =
+                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
         }
         onDispose { }
     }
