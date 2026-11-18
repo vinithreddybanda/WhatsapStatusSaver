@@ -115,7 +115,6 @@ import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur as glassBlur
 import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
 import com.vinithreddybanda.whatsapstatus.model.Status
 import kotlinx.coroutines.launch
@@ -481,7 +480,6 @@ private fun LiquidTabBar(
                 backdrop = backdrop,
                 shape = { RoundedCornerShape(26.dp) },
                 effects = {
-                    vibrancy()
                     glassBlur(18.dp.toPx())
                     lens(18.dp.toPx(), 28.dp.toPx())
                 },
