@@ -82,6 +82,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -105,6 +106,15 @@ import coil.compose.rememberAsyncImagePainter
 import coil.decode.VideoFrameDecoder
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import com.kyant.backdrop.backdrops.LayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur as glassBlur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.shapes.RoundedRectangle as GlassRoundedRectangle
 import com.vinithreddybanda.whatsapstatus.model.Status
 import kotlinx.coroutines.launch
 import java.io.File
@@ -175,6 +185,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
     }
 
     val tabs = remember { listOf(StatusTab.All, StatusTab.Images, StatusTab.Videos, StatusTab.Saved) }
+    val glassBackdrop = rememberLayerBackdrop()
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { tabs.size })
     val blurRadius by animateDpAsState(
         targetValue = if (selectedStatus != null) 12.dp else 0.dp,
@@ -196,85 +207,55 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
 
     Box(Modifier.fillMaxSize()) {
         Scaffold(
-            modifier = Modifier.fillMaxSize().blur(blurRadius).windowInsetsPadding(WindowInsets.displayCutout),
+            modifier = Modifier.fillMaxSize().blur(blurRadius).windowInsetsPadding(WindowInsets.displayCutout).layerBackdrop(glassBackdrop),
             containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
-                Column(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.background)
-                        .padding(top = 14.dp, bottom = 8.dp)
+                        .padding(start = 22.dp, end = 14.dp, top = 20.dp, bottom = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                text = "Status Saver",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Text(
-                                text = "Your recent stories",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        IconButton(
-                            onClick = { if (hasPermission) viewModel.getStatuses(forceRefresh = true) },
-                            enabled = hasPermission
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Refresh,
-                                contentDescription = "Refresh statuses",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            text = "Your stories",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.8).sp,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Spacer(Modifier.height(3.dp))
+                        Text(
+                            text = if (hasPermission) "${viewModel.statusList.size} stories on this device" else "Your private media space",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-
-                    LazyRow(
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 12.dp),
-                        contentPadding = PaddingValues(horizontal = 18.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f))
+                            .clickable(enabled = hasPermission) { viewModel.getStatuses(forceRefresh = true) },
+                        contentAlignment = Alignment.Center
                     ) {
-                        lazyRowItems(tabs) { tab ->
-                            val selected = pagerState.currentPage == tabs.indexOf(tab)
-                            FilterChip(
-                                selected = selected,
-                                onClick = {
-                                    scope.launch { pagerState.animateScrollToPage(tabs.indexOf(tab)) }
-                                },
-                                label = {
-                                    Text(
-                                        text = tab.title,
-                                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
-                                    )
-                                },
-                                shape = RoundedCornerShape(50),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
-                                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                ),
-                                border = FilterChipDefaults.filterChipBorder(
-                                    enabled = true,
-                                    selected = selected,
-                                    borderColor = Color.Transparent
-                                )
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Outlined.Refresh,
+                            contentDescription = "Refresh statuses",
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
-            }
-        ) { innerPadding ->
+            },
+            bottomBar = {
+                LiquidTabBar(
+                    selectedIndex = pagerState.currentPage,
+                    backdrop = glassBackdrop,
+                    onSelect = { index -> scope.launch { pagerState.animateScrollToPage(index) } }
+                )
+            }        ) { innerPadding ->
             if (!hasPermission) {
                 AccessRequiredContent(
                     modifier = Modifier
@@ -315,7 +296,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                                     end = 14.dp,
                                     top = 8.dp,
                                     bottom = WindowInsets.navigationBars.asPaddingValues()
-                                        .calculateBottomPadding() + 18.dp
+                                        .calculateBottomPadding() + 12.dp
                                 ),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalItemSpacing = 15.dp,
@@ -470,6 +451,73 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
 
 
 @Composable
+private fun LiquidTabBar(
+    selectedIndex: Int,
+    backdrop: LayerBackdrop,
+    onSelect: (Int) -> Unit
+) {
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val tabs = listOf(
+        Triple(Icons.Outlined.FolderOpen, "All", 0),
+        Triple(Icons.Outlined.Photo, "Photos", 1),
+        Triple(Icons.Outlined.PlayCircleOutline, "Videos", 2),
+        Triple(Icons.Outlined.BookmarkBorder, "Saved", 3)
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 18.dp)
+            .navigationBarsPadding()
+            .padding(bottom = 10.dp)
+            .height(68.dp)
+            .drawBackdrop(
+                backdrop = backdrop,
+                shape = { GlassRoundedRectangle(26.dp) },
+                effects = {
+                    vibrancy()
+                    glassBlur(18.dp.toPx())
+                    lens(18.dp.toPx(), 28.dp.toPx())
+                },
+                highlight = { Highlight.Default },
+                onDrawSurface = {
+                    drawRect(if (isDark) Color(0xFF202124).copy(alpha = 0.76f) else Color.White.copy(alpha = 0.70f))
+                }
+            )
+            .padding(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        tabs.forEach { (icon, label, page) ->
+            val selected = selectedIndex == page
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(if (selected) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f) else Color.Transparent)
+                    .clickable { onSelect(page) },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(21.dp)
+                )
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                    color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun HideModalStatusBar() {
     val view = LocalView.current
     val dialogWindow = remember(view) {
@@ -539,7 +587,7 @@ private fun StatusCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onOpen),
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
