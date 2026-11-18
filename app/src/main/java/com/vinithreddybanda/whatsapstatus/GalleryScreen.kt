@@ -206,7 +206,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
 
     Box(Modifier.fillMaxSize()) {
         Scaffold(
-            modifier = Modifier.fillMaxSize().blur(blurRadius).windowInsetsPadding(WindowInsets.displayCutout).layerBackdrop(glassBackdrop),
+            modifier = Modifier.fillMaxSize().blur(blurRadius).windowInsetsPadding(WindowInsets.displayCutout),
             containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
@@ -248,13 +248,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                     }
                 }
             },
-            bottomBar = {
-                LiquidTabBar(
-                    selectedIndex = pagerState.currentPage,
-                    backdrop = glassBackdrop,
-                    onSelect = { index -> scope.launch { pagerState.animateScrollToPage(index) } }
-                )
-            }        ) { innerPadding ->
+        ) { innerPadding ->
             if (!hasPermission) {
                 AccessRequiredContent(
                     modifier = Modifier
@@ -267,7 +261,8 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                     state = pagerState,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding),
+                        .padding(innerPadding)
+                        .layerBackdrop(glassBackdrop),
                     beyondViewportPageCount = 0,
                     key = { tabs[it].title }
                 ) { page ->
@@ -345,6 +340,15 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                     }
                 }
             }
+        }
+
+        if (hasPermission) {
+            LiquidTabBar(
+                selectedIndex = pagerState.currentPage,
+                backdrop = glassBackdrop,
+                modifier = Modifier.align(Alignment.BottomCenter),
+                onSelect = { index -> scope.launch { pagerState.animateScrollToPage(index) } }
+            )
         }
 
         if (showAccessSheet && !hasPermission) {
@@ -453,6 +457,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
 private fun LiquidTabBar(
     selectedIndex: Int,
     backdrop: LayerBackdrop,
+    modifier: Modifier = Modifier,
     onSelect: (Int) -> Unit
 ) {
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
@@ -463,7 +468,7 @@ private fun LiquidTabBar(
         Triple(Icons.Outlined.BookmarkBorder, "Saved", 3)
     )
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 18.dp)
             .navigationBarsPadding()
