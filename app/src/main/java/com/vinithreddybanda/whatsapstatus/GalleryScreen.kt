@@ -9,20 +9,34 @@ import android.os.Build
 import android.os.Environment
 import android.provider.Settings
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,9 +44,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
@@ -42,32 +59,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Send
-import androidx.compose.material.icons.outlined.BookmarkBorder
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.FolderOpen
-import androidx.compose.material.icons.outlined.MoreHoriz
-import androidx.compose.material.icons.outlined.Photo
-import androidx.compose.material.icons.outlined.PlayCircleOutline
-import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -80,16 +73,16 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
@@ -101,27 +94,45 @@ import coil.compose.rememberAsyncImagePainter
 import coil.decode.VideoFrameDecoder
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.highlight.Highlight
 import com.vinithreddybanda.whatsapstatus.model.Status
+import com.vinithreddybanda.whatsapstatus.ui.theme.AppPalette
+import com.vinithreddybanda.whatsapstatus.ui.theme.AppType
+import com.vinithreddybanda.whatsapstatus.ui.theme.LocalAppPalette
 import kotlinx.coroutines.launch
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.outlined.Photo
+import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.PlayCircleOutline
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Share
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
+    val palette = LocalAppPalette.current
+    val backdrop = rememberLayerBackdrop()
 
     var hasPermission by remember { mutableStateOf(checkStoragePermission(context)) }
-    var showAccessSheet by remember { mutableStateOf(!hasPermission) }
     var selectedStatus by remember { mutableStateOf<Status?>(null) }
+    var searchExpanded by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-
-    val accessSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val actionSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val settingsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -165,10 +176,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
     }
 
     LaunchedEffect(hasPermission) {
-        if (hasPermission) {
-            showAccessSheet = false
-            viewModel.getStatuses()
-        }
+        if (hasPermission) viewModel.getStatuses()
     }
 
     val tabs = remember { listOf(StatusTab.All, StatusTab.Images, StatusTab.Videos, StatusTab.Saved) }
@@ -176,9 +184,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
 
     LaunchedEffect(viewModel.selectedTab) {
         val index = tabs.indexOf(viewModel.selectedTab)
-        if (index >= 0 && pagerState.currentPage != index) {
-            pagerState.animateScrollToPage(index)
-        }
+        if (index >= 0 && pagerState.currentPage != index) pagerState.animateScrollToPage(index)
     }
 
     LaunchedEffect(pagerState) {
@@ -187,131 +193,98 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
         }
     }
 
-    Box(Modifier.fillMaxSize()) {
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            containerColor = MaterialTheme.colorScheme.background,
-            contentWindowInsets = WindowInsets(0, 0, 0, 0),
-            topBar = {
-                Column(
+    BackHandler(enabled = selectedStatus != null) {
+        selectedStatus = null
+    }
+
+    Box(Modifier.fillMaxSize().background(palette.background)) {
+        Column(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(horizontal = 16.dp, vertical = 7.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SpringIconButton(
+                    icon = Icons.Outlined.Search,
+                    description = "Search statuses",
+                    palette = palette,
+                    onClick = { searchExpanded = !searchExpanded }
+                )
+                Spacer(Modifier.width(6.dp))
+                SpringIconButton(
+                    icon = Icons.Outlined.Refresh,
+                    description = "Refresh statuses",
+                    palette = palette,
+                    onClick = { viewModel.getStatuses(forceRefresh = true) }
+                )
+            }
+
+            AnimatedVisibility(
+                visible = searchExpanded,
+                enter = fadeIn(spring(stiffness = Spring.StiffnessMedium)) +
+                    expandVertically(spring(dampingRatio = Spring.DampingRatioMediumBouncy)),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.background)
-                        .windowInsetsPadding(WindowInsets.statusBars)
-                        .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 12.dp)
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(palette.placeholder.copy(alpha = 0.72f))
+                        .padding(horizontal = 16.dp, vertical = 13.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                text = "STATUS / ARCHIVE",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.secondary,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.8.sp
-                            )
-                            Spacer(Modifier.height(5.dp))
-                            Text(
-                                text = "Your stories",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = (-1.1).sp,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                text = if (hasPermission) viewModel.statusList.size.toString() + " moments on this device" else "Your private media space",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Surface(
-                            modifier = Modifier.size(46.dp).clickable(enabled = hasPermission) {
-                                viewModel.getStatuses(forceRefresh = true)
-                            },
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceVariant
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Refresh,
-                                    contentDescription = "Refresh statuses",
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(16.dp))
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Search,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(19.dp)
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Box(Modifier.weight(1f)) {
+                    BasicTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        singleLine = true,
+                        textStyle = AppType.body.copy(color = palette.foreground),
+                        cursorBrush = SolidColor(palette.accent),
+                        modifier = Modifier.weight(1f),
+                        decorationBox = { innerTextField ->
+                            Box {
                                 if (searchQuery.isBlank()) {
-                                    Text(
-                                        "Search your stories",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    BasicText("Search", style = AppType.body.copy(color = palette.muted))
                                 }
-                                BasicTextField(
-                                    value = searchQuery,
-                                    onValueChange = { searchQuery = it },
-                                    singleLine = true,
-                                    textStyle = MaterialTheme.typography.bodyMedium.copy(
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    ),
-                                    cursorBrush = SolidColor(MaterialTheme.colorScheme.secondary),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(
-                                    onClick = { searchQuery = "" },
-                                    modifier = Modifier.size(30.dp)
-                                ) {
-                                    Icon(Icons.Outlined.Close, contentDescription = "Clear search", modifier = Modifier.size(17.dp))
-                                }
+                                innerTextField()
                             }
                         }
+                    )
+                    if (searchQuery.isNotEmpty()) {
+                        BasicText(
+                            "Clear",
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .clickable { searchQuery = "" }
+                                .padding(start = 12.dp),
+                            style = AppType.caption.copy(color = palette.accent)
+                        )
                     }
                 }
             }
-        ) { innerPadding ->
+
             if (!hasPermission) {
-                AccessRequiredContent(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    onGrant = { requestAccess() }
+                AccessScreen(
+                    modifier = Modifier.weight(1f),
+                    palette = palette,
+                    onGrant = requestAccess
                 )
             } else {
                 HorizontalPager(
                     state = pagerState,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
+                    modifier = Modifier.weight(1f),
                     beyondViewportPageCount = 0,
                     key = { tabs[it].title }
                 ) { page ->
                     val tab = tabs[page]
-                    val allTabStatuses = viewModel.getStatusesForTab(tab)
+                    val allStatuses = viewModel.getStatusesForTab(tab)
                     val visibleLimit = viewModel.getVisibleStatusesForTab(tab).size
-                    val statuses = remember(allTabStatuses, searchQuery, visibleLimit) {
-                        val filtered = if (searchQuery.isBlank()) allTabStatuses else allTabStatuses.filter {
-                            it.title.contains(searchQuery.trim(), ignoreCase = true)
+                    val statuses = remember(allStatuses, searchQuery, visibleLimit) {
+                        val filtered = if (searchQuery.isBlank()) allStatuses else {
+                            allStatuses.filter { it.title.contains(searchQuery.trim(), ignoreCase = true) }
                         }
                         filtered.take(visibleLimit)
                     }
@@ -333,252 +306,215 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                                 state = gridState,
                                 columns = StaggeredGridCells.Fixed(2),
                                 contentPadding = PaddingValues(
-                                    start = 14.dp,
-                                    end = 14.dp,
-                                    top = 8.dp,
+                                    start = 7.dp,
+                                    end = 7.dp,
+                                    top = 4.dp,
                                     bottom = WindowInsets.navigationBars.asPaddingValues()
-                                        .calculateBottomPadding() + 104.dp
+                                        .calculateBottomPadding() + 100.dp
                                 ),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalItemSpacing = 15.dp,
+                                horizontalArrangement = Arrangement.spacedBy(7.dp),
+                                verticalItemSpacing = 7.dp,
                                 modifier = Modifier.fillMaxSize()
                             ) {
                                 staggeredGridItems(
                                     items = statuses,
                                     key = { it.path },
-                                    contentType = { "status-card" }
+                                    contentType = { "media" }
                                 ) { status ->
                                     StatusCard(
                                         status = status,
+                                        palette = palette,
                                         onOpen = { openStatusFile(context, status.file) },
-                                        onOptions = { selectedStatus = status }
+                                        onLongPress = { selectedStatus = status }
                                     )
-                                }
-                                if (viewModel.isFetching) {
-                                    item {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(18.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(20.dp),
-                                                strokeWidth = 2.dp
-                                            )
-                                        }
-                                    }
                                 }
                             }
                         }
-                        (tab != StatusTab.Saved && viewModel.isFetching) || (tab == StatusTab.Saved && viewModel.isSavedFetching) -> {
-                            LoadingGallery()
-                        }
-                        else -> {
-                            EmptyGallery(
-                                title = when {
-                                    searchQuery.isNotBlank() -> "No matches found"
-                                    tab == StatusTab.Saved -> "Nothing saved yet"
-                                    else -> "No statuses found"
-                                },
-                                subtitle = when {
-                                    searchQuery.isNotBlank() -> "Try a different name or clear your search."
-                                    tab == StatusTab.Saved -> "Save a story and it will appear here."
-                                    else -> "New WhatsApp stories will appear here automatically."
-                                }
-                            )
-                        }
+                        (tab != StatusTab.Saved && viewModel.isFetching) ||
+                            (tab == StatusTab.Saved && viewModel.isSavedFetching) -> LoadingGallery(palette)
+                        else -> EmptyGallery(
+                            palette = palette,
+                            message = if (searchQuery.isNotBlank()) "No matches" else "Nothing here yet"
+                        )
                     }
                 }
             }
         }
 
         if (hasPermission) {
-            GalleryBottomBar(
+            GlassBottomBar(
+                backdrop = backdrop,
+                palette = palette,
                 selectedIndex = pagerState.currentPage,
                 modifier = Modifier.align(Alignment.BottomCenter),
                 onSelect = { index -> scope.launch { pagerState.animateScrollToPage(index) } }
             )
         }
 
-        if (showAccessSheet && !hasPermission) {
-            ModalBottomSheet(
-                onDismissRequest = { showAccessSheet = false },
-                sheetState = accessSheetState,
-                containerColor = MaterialTheme.colorScheme.surface,
-                scrimColor = Color.Black.copy(alpha = 0.32f),
-                contentWindowInsets = { WindowInsets(0, 0, 0, 0) }
-            ) {
-                PermissionSheetContent(
-                    onContinue = {
-                        scope.launch {
-                            accessSheetState.hide()
-                            showAccessSheet = false
-                            requestAccess()
-                        }
-                    },
-                    onNotNow = {
-                        scope.launch {
-                            accessSheetState.hide()
-                            showAccessSheet = false
-                        }
-                    }
-                )
-            }
-        }
-
         selectedStatus?.let { status ->
-            ModalBottomSheet(
-                onDismissRequest = { selectedStatus = null },
-                sheetState = actionSheetState,
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                containerColor = MaterialTheme.colorScheme.surface,
-                scrimColor = Color.Black.copy(alpha = 0.42f),
-                contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
-                dragHandle = {
-                    Box(
-                        Modifier
-                            .padding(top = 12.dp)
-                            .size(width = 38.dp, height = 4.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f))
-                    )
-                }
-            ) {
-
-                StatusActionsSheet(
-                    status = status,
-                    isSaved = viewModel.selectedTab == StatusTab.Saved,
-                    onClose = {
-                        scope.launch {
-                            actionSheetState.hide()
-                            selectedStatus = null
-                        }
-                    },
-                    onSave = {
-                        viewModel.saveStatus(status) { success ->
-                            Toast.makeText(
-                                context,
-                                if (success) "Saved to StatusSaver" else "Couldn't save this status",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            scope.launch {
-                                actionSheetState.hide()
-                                selectedStatus = null
-                            }
-                        }
-                    },
-                    onDelete = {
-                        viewModel.deleteStatus(status) { success ->
-                            Toast.makeText(
-                                context,
-                                if (success) "Removed from saved" else "Couldn't delete this status",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            scope.launch {
-                                actionSheetState.hide()
-                                selectedStatus = null
-                            }
-                        }
-                    },
-                    onShare = {
-                        scope.launch {
-                            actionSheetState.hide()
-                            selectedStatus = null
-                            shareStatusFile(context, status.file, share = true)
-                        }
-                    },
-                    onRepost = {
-                        scope.launch {
-                            actionSheetState.hide()
-                            selectedStatus = null
-                            shareStatusFile(context, status.file, share = false)
-                        }
+            StatusActionsOverlay(
+                backdrop = backdrop,
+                palette = palette,
+                status = status,
+                isSaved = viewModel.selectedTab == StatusTab.Saved,
+                onDismiss = { selectedStatus = null },
+                onSave = {
+                    viewModel.saveStatus(status) { success ->
+                        Toast.makeText(context, if (success) "Saved" else "Couldn't save", Toast.LENGTH_SHORT).show()
+                        selectedStatus = null
                     }
-                )
-            }
+                },
+                onDelete = {
+                    viewModel.deleteStatus(status) { success ->
+                        Toast.makeText(context, if (success) "Deleted" else "Couldn't delete", Toast.LENGTH_SHORT).show()
+                        selectedStatus = null
+                    }
+                },
+                onShare = {
+                    selectedStatus = null
+                    shareStatusFile(context, status.file, share = true)
+                },
+                onRepost = {
+                    selectedStatus = null
+                    shareStatusFile(context, status.file, share = false)
+                }
+            )
         }
     }
 }
 
+@Composable
+private fun SpringIconButton(
+    icon: ImageVector,
+    description: String,
+    palette: AppPalette,
+    onClick: () -> Unit
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.88f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "iconPress"
+    )
+    Box(
+        modifier = Modifier
+            .size(46.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(CircleShape)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = rememberVectorPainter(icon),
+            contentDescription = description,
+            modifier = Modifier.size(21.dp),
+            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(palette.foreground)
+        )
+    }
+}
 
 @Composable
-private fun GalleryBottomBar(
+private fun GlassBottomBar(
+    backdrop: Backdrop,
+    palette: AppPalette,
     selectedIndex: Int,
     modifier: Modifier = Modifier,
     onSelect: (Int) -> Unit
 ) {
-    val tabs = listOf(
-        Triple(Icons.Outlined.FolderOpen, "All", 0),
-        Triple(Icons.Outlined.Photo, "Photos", 1),
-        Triple(Icons.Outlined.PlayCircleOutline, "Videos", 2),
-        Triple(Icons.Outlined.BookmarkBorder, "Saved", 3)
+    val icons = listOf(
+        Icons.Outlined.FolderOpen,
+        Icons.Outlined.Photo,
+        Icons.Outlined.PlayCircleOutline,
+        Icons.Outlined.BookmarkBorder
     )
-    Surface(
+    val descriptions = listOf("All statuses", "Photos", "Videos", "Saved statuses")
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 18.dp)
             .navigationBarsPadding()
-            .padding(bottom = 10.dp)
-            .height(68.dp)
-            .shadow(14.dp, RoundedCornerShape(24.dp)),
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 3.dp
+            .padding(bottom = 8.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Row(
-            modifier = Modifier.padding(5.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
+        BoxWithConstraints(
+            Modifier
+                .width(252.dp)
+                .height(68.dp)
+                .drawBackdrop(
+                    backdrop = backdrop,
+                    shape = { RoundedCornerShape(34.dp) },
+                    effects = {
+                        blur(14.dp.toPx())
+                        lens(16.dp.toPx(), 26.dp.toPx())
+                    },
+                    highlight = { Highlight.Default.copy(alpha = 0.55f) },
+                    shadow = { null },
+                    onDrawSurface = { drawRect(palette.glass) }
+                )
+                .border(0.7.dp, palette.glassBorder, RoundedCornerShape(34.dp))
         ) {
-            tabs.forEach { (icon, label, page) ->
-                val selected = selectedIndex == page
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(19.dp))
-                        .background(
-                            if (selected) MaterialTheme.colorScheme.secondaryContainer
-                            else Color.Transparent
+            val slotWidth = maxWidth / 4
+            val indicatorOffset by animateDpAsState(
+                targetValue = slotWidth * selectedIndex,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                label = "tabIndicator"
+            )
+            Box(
+                Modifier
+                    .offset(x = indicatorOffset)
+                    .padding(horizontal = 3.dp)
+                    .width(slotWidth - 6.dp)
+                    .height(56.dp)
+                    .align(Alignment.CenterStart)
+                    .clip(CircleShape)
+                    .background(palette.accent.copy(alpha = 0.15f))
+            )
+            Row(
+                Modifier.fillMaxSize().padding(horizontal = 3.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                icons.forEachIndexed { index, icon ->
+                    val selected = selectedIndex == index
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { onSelect(index) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = rememberVectorPainter(icon),
+                            contentDescription = descriptions[index],
+                            modifier = Modifier.size(if (selected) 23.dp else 21.dp),
+                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
+                                if (selected) palette.accent else palette.muted
+                            )
                         )
-                        .clickable { onSelect(page) },
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = label,
-                        tint = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.height(3.dp))
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                        color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    }
                 }
             }
         }
     }
 }
 
-
-
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun StatusCard(
     status: Status,
+    palette: AppPalette,
     onOpen: () -> Unit,
-    onOptions: () -> Unit
+    onLongPress: () -> Unit
 ) {
     val context = LocalContext.current
-    val cacheKey = remember(status.path, status.timestamp) {
-        status.path + ":" + status.timestamp
-    }
+    val cacheKey = remember(status.path, status.timestamp) { "${status.path}:${status.timestamp}" }
     val request = remember(cacheKey, status.isVideo) {
         ImageRequest.Builder(context)
             .data(status.file)
@@ -588,245 +524,150 @@ private fun StatusCard(
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
             .crossfade(false)
-            .apply {
-                if (status.isVideo) decoderFactory(VideoFrameDecoder.Factory())
-            }
+            .apply { if (status.isVideo) decoderFactory(VideoFrameDecoder.Factory()) }
             .build()
     }
     val ratio = status.aspectRatio ?: if (status.isVideo) 0.5625f else 0.82f
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.975f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "mediaPress"
+    )
 
-    Column(Modifier.fillMaxWidth()) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(ratio)
-                .clip(RoundedCornerShape(20.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .clickable(onClick = onOpen)
-        ) {
-            Image(
-                painter = rememberAsyncImagePainter(model = request),
-                contentDescription = if (status.isVideo) "Video status" else "Image status",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(RoundedCornerShape(15.dp))
+            .background(palette.placeholder)
+            .combinedClickable(
+                interactionSource = interaction,
+                indication = null,
+                onClick = onOpen,
+                onLongClick = onLongPress
             )
-            if (status.isVideo) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.48f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.PlayArrow,
-                        contentDescription = "Play video",
-                        tint = Color.White,
-                        modifier = Modifier.size(26.dp)
-                    )
-                }
-            }
-            Surface(
-                modifier = Modifier.align(Alignment.TopEnd).padding(9.dp).size(34.dp)
-                    .clickable(onClick = onOptions),
-                shape = CircleShape,
-                color = Color.Black.copy(alpha = 0.48f)
+            .aspectRatio(ratio)
+    ) {
+        Image(
+            painter = rememberAsyncImagePainter(model = request),
+            contentDescription = if (status.isVideo) "Open video status" else "Open photo status",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+        if (status.isVideo) {
+            Box(
+                Modifier
+                    .align(Alignment.Center)
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.32f)),
+                contentAlignment = Alignment.Center
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Outlined.MoreHoriz,
-                        contentDescription = "Status options",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-            if (status.isVideo) {
-                Surface(
-                    modifier = Modifier.align(Alignment.BottomStart).padding(9.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color.Black.copy(alpha = 0.58f)
-                ) {
-                    Text(
-                        "VIDEO",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.8.sp
-                    )
-                }
+                Image(
+                    painter = rememberVectorPainter(Icons.Outlined.PlayArrow),
+                    contentDescription = "Play",
+                    modifier = Modifier.size(27.dp),
+                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White)
+                )
             }
         }
-        Text(
-            text = formatStatusTime(status.timestamp),
-            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 2.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1
-        )
     }
 }
 
-
-
 @Composable
-private fun LoadingGallery() {
+private fun LoadingGallery(palette: AppPalette) {
     val ratios = listOf(0.78f, 1.12f, 0.92f, 1.28f, 0.84f, 1.02f)
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(2),
-        contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 110.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalItemSpacing = 14.dp
+        contentPadding = PaddingValues(start = 7.dp, end = 7.dp, top = 4.dp, bottom = 110.dp),
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
+        verticalItemSpacing = 7.dp
     ) {
         items(6) { index ->
             Box(
-                modifier = Modifier
+                Modifier
                     .fillMaxWidth()
                     .aspectRatio(ratios[index])
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clip(RoundedCornerShape(15.dp))
+                    .background(palette.placeholder)
             )
         }
     }
 }
 
-
+@Composable
+private fun EmptyGallery(palette: AppPalette, message: String) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        BasicText(message, style = AppType.body.copy(color = palette.muted, textAlign = TextAlign.Center))
+    }
+}
 
 @Composable
-private fun EmptyGallery(title: String, subtitle: String) {
+private fun AccessScreen(
+    modifier: Modifier = Modifier,
+    palette: AppPalette,
+    onGrant: () -> Unit
+) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 36.dp),
+        modifier = modifier.fillMaxWidth().padding(horizontal = 34.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Box(
-            modifier = Modifier.size(76.dp).clip(RoundedCornerShape(26.dp))
-                .background(MaterialTheme.colorScheme.secondaryContainer),
+            Modifier.size(76.dp).clip(RoundedCornerShape(26.dp)).background(palette.placeholder),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Outlined.FolderOpen,
+            Image(
+                painter = rememberVectorPainter(Icons.Outlined.FolderOpen),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(31.dp),
+                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(palette.foreground)
             )
         }
-        Spacer(Modifier.height(20.dp))
-        Text(
-            title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+        Spacer(Modifier.height(22.dp))
+        BasicText("Allow access", style = AppType.display.copy(color = palette.foreground))
         Spacer(Modifier.height(7.dp))
-        Text(
-            subtitle,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
-    }
-}
-
-
-
-@Composable
-private fun AccessRequiredContent(modifier: Modifier = Modifier, onGrant: () -> Unit) {
-    Column(
-        modifier = modifier.padding(horizontal = 30.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(
-            modifier = Modifier.size(82.dp).clip(RoundedCornerShape(28.dp))
-                .background(MaterialTheme.colorScheme.secondaryContainer),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.FolderOpen,
-                contentDescription = null,
-                modifier = Modifier.size(36.dp),
-                tint = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-        }
-        Spacer(Modifier.height(22.dp))
-        Text("Your gallery is waiting", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "Give Status Saver access to your WhatsApp status folder. Your media stays on this device.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
-        Spacer(Modifier.height(22.dp))
-        Button(
-            onClick = onGrant,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            contentPadding = PaddingValues(vertical = 15.dp)
-        ) {
-            Text("Grant access")
-        }
-    }
-}
-
-
-
-@Composable
-private fun PermissionSheetContent(onContinue: () -> Unit, onNotNow: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-            .padding(top = 8.dp, bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp)
-    ) {
-        Box(
-            modifier = Modifier.size(58.dp).clip(RoundedCornerShape(19.dp))
-                .background(MaterialTheme.colorScheme.secondaryContainer),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                Icons.Outlined.FolderOpen,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(28.dp)
-            )
-        }
-        Spacer(Modifier.height(20.dp))
-        Text("A little access, a lot less effort", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(9.dp))
-        Text(
-            "Status Saver reads the WhatsApp status folder to show your recent photos and videos. Nothing is uploaded.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        BasicText(
+            "To find WhatsApp statuses on this device.",
+            style = AppType.body.copy(color = palette.muted, textAlign = TextAlign.Center)
         )
         Spacer(Modifier.height(24.dp))
-        Button(
-            onClick = onContinue,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            contentPadding = PaddingValues(vertical = 15.dp)
-        ) {
-            Text("Continue")
-        }
-        Text(
-            "Maybe later",
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onNotNow).padding(vertical = 16.dp),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
+        SpringActionButton(text = "Continue", palette = palette, onClick = onGrant)
     }
 }
 
-
+@Composable
+private fun SpringActionButton(text: String, palette: AppPalette, onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "actionPress"
+    )
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(54.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(RoundedCornerShape(18.dp))
+            .background(palette.accent)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        BasicText(text, style = AppType.body.copy(color = Color(0xFF17200D), fontWeight = FontWeight.SemiBold))
+    }
+}
 
 @Composable
-private fun StatusActionsSheet(
+private fun StatusActionsOverlay(
+    backdrop: Backdrop,
+    palette: AppPalette,
     status: Status,
     isSaved: Boolean,
-    onClose: () -> Unit,
+    onDismiss: () -> Unit,
     onSave: () -> Unit,
     onDelete: () -> Unit,
     onShare: () -> Unit,
@@ -836,110 +677,120 @@ private fun StatusActionsSheet(
     val request = remember(status.path, status.timestamp) {
         ImageRequest.Builder(context)
             .data(status.file)
-            .size(220)
+            .size(180)
             .memoryCacheKey("${status.path}:${status.timestamp}")
             .crossfade(false)
             .apply { if (status.isVideo) decoderFactory(VideoFrameDecoder.Factory()) }
             .build()
     }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 22.dp)
-            .padding(top = 12.dp, bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 22.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Card(
-                modifier = Modifier.size(66.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Image(
-                    painter = rememberAsyncImagePainter(request),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = status.title,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(Modifier.height(3.dp))
-                Text(
-                    text = formatStatusTime(status.timestamp),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            IconButton(onClick = onClose) {
-                Icon(Icons.Outlined.Close, contentDescription = "Close")
-            }
-        }
 
-        Spacer(Modifier.height(22.dp))
-        Text(
-            "ACTIONS",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = 1.1.sp
-        )
-        Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            ActionTile(
-                icon = if (isSaved) Icons.Outlined.DeleteOutline else Icons.Outlined.BookmarkBorder,
-                label = if (isSaved) "Delete" else "Save",
-                modifier = Modifier.weight(1f),
-                onClick = if (isSaved) onDelete else onSave
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(palette.scrim)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onDismiss
+            ),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 10.dp, vertical = 8.dp)
+                .drawBackdrop(
+                    backdrop = backdrop,
+                    shape = { RoundedCornerShape(30.dp) },
+                    effects = {
+                        blur(18.dp.toPx())
+                        lens(18.dp.toPx(), 30.dp.toPx())
+                    },
+                    highlight = { Highlight.Default.copy(alpha = 0.65f) },
+                    shadow = { null },
+                    onDrawSurface = { drawRect(palette.glass) }
+                )
+                .border(0.7.dp, palette.glassBorder, RoundedCornerShape(30.dp))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {},
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                Modifier.padding(top = 12.dp).size(width = 34.dp, height = 4.dp)
+                    .clip(CircleShape).background(palette.muted.copy(alpha = 0.45f))
             )
-            ActionTile(
-                icon = Icons.Outlined.Share,
-                label = "Share",
-                modifier = Modifier.weight(1f),
-                onClick = onShare
-            )
-            ActionTile(
-                icon = Icons.AutoMirrored.Outlined.Send,
-                label = "WhatsApp",
-                modifier = Modifier.weight(1f),
-                onClick = onRepost
-            )
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 18.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Box(
+                    Modifier.size(54.dp).clip(RoundedCornerShape(14.dp)).background(palette.placeholder)
+                ) {
+                    Image(
+                        painter = rememberAsyncImagePainter(request),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                ActionGlassButton(
+                    icon = if (isSaved) Icons.Outlined.DeleteOutline else Icons.Outlined.BookmarkBorder,
+                    description = if (isSaved) "Delete saved status" else "Save status",
+                    palette = palette,
+                    onClick = if (isSaved) onDelete else onSave
+                )
+                ActionGlassButton(
+                    icon = Icons.Outlined.Share,
+                    description = "Share status",
+                    palette = palette,
+                    onClick = onShare
+                )
+                ActionGlassButton(
+                    icon = Icons.AutoMirrored.Outlined.Send,
+                    description = "Send to WhatsApp",
+                    palette = palette,
+                    onClick = onRepost
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun ActionTile(
+private fun ActionGlassButton(
     icon: ImageVector,
-    label: String,
-    modifier: Modifier = Modifier,
+    description: String,
+    palette: AppPalette,
     onClick: () -> Unit
 ) {
-    Surface(
-        modifier = modifier
-            .height(94.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f)
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.86f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "glassActionPress"
+    )
+    Box(
+        Modifier
+            .size(52.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(CircleShape)
+            .background(palette.glass.copy(alpha = 0.72f))
+            .border(0.7.dp, palette.glassBorder, CircleShape)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(23.dp)
-            )
-            Spacer(Modifier.height(9.dp))
-            Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
-        }
+        Image(
+            painter = rememberVectorPainter(icon),
+            contentDescription = description,
+            modifier = Modifier.size(21.dp),
+            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(palette.foreground)
+        )
     }
 }
 
@@ -957,9 +808,8 @@ private fun checkStoragePermission(context: Context): Boolean {
 private fun openStatusFile(context: Context, file: File) {
     try {
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-        val mimeType = mediaMimeType(file)
         val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, mimeType)
+            setDataAndType(uri, mediaMimeType(file))
             clipData = ClipData.newUri(context.contentResolver, file.name, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
@@ -998,8 +848,4 @@ private fun mediaMimeType(file: File): String {
         "webp" -> "image/webp"
         else -> "image/jpeg"
     }
-}
-
-private fun formatStatusTime(timestamp: Long): String {
-    return SimpleDateFormat("dd MMM · hh:mm a", Locale.getDefault()).format(Date(timestamp))
 }
