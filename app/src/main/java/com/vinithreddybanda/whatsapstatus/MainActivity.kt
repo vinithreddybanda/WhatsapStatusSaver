@@ -16,11 +16,17 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
 
         splashScreen.setOnExitAnimationListener { splash ->
+            splash.iconView.animate()
+                .alpha(0f)
+                .translationY(-12f)
+                .scaleX(0.84f)
+                .scaleY(0.84f)
+                .setDuration(260L)
+                .setInterpolator(DecelerateInterpolator())
+                .start()
             splash.view.animate()
                 .alpha(0f)
-                .scaleX(0.985f)
-                .scaleY(0.985f)
-                .setDuration(220L)
+                .setDuration(260L)
                 .setInterpolator(DecelerateInterpolator())
                 .withEndAction { splash.remove() }
                 .start()
