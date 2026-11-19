@@ -392,7 +392,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
         }
 
         if (hasPermission) {
-            LiquidTabBar(
+            GalleryBottomBar(
                 selectedIndex = pagerState.currentPage,
                 modifier = Modifier.align(Alignment.BottomCenter),
                 onSelect = { index -> scope.launch { pagerState.animateScrollToPage(index) } }
@@ -501,7 +501,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
 
 
 @Composable
-private fun LiquidTabBar(
+private fun GalleryBottomBar(
     selectedIndex: Int,
     modifier: Modifier = Modifier,
     onSelect: (Int) -> Unit
