@@ -120,8 +120,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.util.Locale
 import kotlin.math.roundToInt
-import compose.icons.lucide.LucideIcons
-import compose.icons.lucide.lucideicons.*
+import androidx.compose.material.icons.Icons
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -222,7 +221,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 SpringIconButton(
-                    icon = if (searchExpanded) LucideIcons.X else LucideIcons.Search,
+                    icon = if (searchExpanded) Icons.Outlined.Close else Icons.Outlined.Search,
                     description = if (searchExpanded) "Close search" else "Search statuses",
                     palette = palette,
                     onClick = {
@@ -232,7 +231,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                 )
                 Spacer(Modifier.width(6.dp))
                 SpringIconButton(
-                    icon = LucideIcons.RefreshCw,
+                    icon = Icons.Outlined.Refresh,
                     description = "Refresh statuses",
                     palette = palette,
                     onClick = { viewModel.getStatuses(forceRefresh = true) }
@@ -257,7 +256,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Image(
-                        painter = rememberVectorPainter(LucideIcons.Search),
+                        painter = rememberVectorPainter(Icons.Outlined.Search),
                         contentDescription = null,
                         modifier = Modifier.size(19.dp),
                         colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(palette.muted)
@@ -281,7 +280,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                     )
                     if (searchQuery.isNotEmpty()) {
                         Image(
-                            painter = rememberVectorPainter(LucideIcons.X),
+                            painter = rememberVectorPainter(Icons.Outlined.Close),
                             contentDescription = "Clear search",
                             modifier = Modifier
                                 .size(20.dp)
@@ -474,16 +473,16 @@ private fun GlassBottomBar(
     onSelect: (Int) -> Unit
 ) {
     val outlineIcons = listOf(
-        LucideIcons.FolderOpen,
-        LucideIcons.Images,
-        LucideIcons.Clapperboard,
-        LucideIcons.Bookmark
+        Icons.Outlined.FolderOpen,
+        Icons.Outlined.PhotoLibrary,
+        Icons.Outlined.Movie,
+        Icons.Outlined.BookmarkBorder
     )
     val filledIcons = listOf(
-        LucideIcons.Folder,
-        LucideIcons.Image,
-        LucideIcons.Video,
-        LucideIcons.BookmarkCheck
+        Icons.Outlined.Folder,
+        Icons.Outlined.Image,
+        Icons.Outlined.Videocam,
+        Icons.Outlined.Bookmark
     )
     val descriptions = listOf("All statuses", "Photos", "Videos", "Saved statuses")
     val haptics = LocalHapticFeedback.current
@@ -708,7 +707,7 @@ private fun StatusCard(
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = rememberVectorPainter(LucideIcons.Play),
+                    painter = rememberVectorPainter(Icons.Outlined.PlayArrow),
                     contentDescription = "Play",
                     modifier = Modifier.size(27.dp),
                     colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White)
@@ -762,7 +761,7 @@ private fun AccessScreen(
             contentAlignment = Alignment.Center
         ) {
             Image(
-                painter = rememberVectorPainter(LucideIcons.FolderOpen),
+                painter = rememberVectorPainter(Icons.Outlined.FolderOpen),
                 contentDescription = null,
                 modifier = Modifier.size(31.dp),
                 colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(palette.foreground)
@@ -881,19 +880,19 @@ private fun StatusActionsOverlay(
                 }
                 Spacer(Modifier.weight(1f))
                 ActionGlassButton(
-                    icon = if (isSaved) LucideIcons.Trash2 else LucideIcons.Bookmark,
+                    icon = if (isSaved) Icons.Outlined.DeleteOutline else Icons.Outlined.BookmarkBorder,
                     description = if (isSaved) "Delete saved status" else "Save status",
                     palette = palette,
                     onClick = if (isSaved) onDelete else onSave
                 )
                 ActionGlassButton(
-                    icon = LucideIcons.Share2,
+                    icon = Icons.Outlined.Share,
                     description = "Share status",
                     palette = palette,
                     onClick = onShare
                 )
                 ActionGlassButton(
-                    icon = LucideIcons.Send,
+                    icon = Icons.AutoMirrored.Outlined.Send,
                     description = "Send to WhatsApp",
                     palette = palette,
                     onClick = onRepost
