@@ -80,6 +80,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -424,6 +425,13 @@ private fun GlassBottomBar(
                         drawRect(
                             Brush.verticalGradient(
                                 listOf(palette.glassTop, palette.glassBottom)
+                            )
+                        )
+                        drawRect(
+                            Brush.radialGradient(
+                                colors = listOf(palette.glassGlow, Color.Transparent),
+                                center = Offset(size.width * 0.24f, size.height * 0.02f),
+                                radius = size.width * 0.88f
                             )
                         )
                     }
