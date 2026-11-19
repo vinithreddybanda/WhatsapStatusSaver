@@ -38,6 +38,9 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
+      - name: Run unit tests
+        run: ./gradlew --no-daemon -Dorg.gradle.java.home="$JAVA_HOME" test
+
       - name: Build GitHub debug APK
         run: ./gradlew --no-daemon -Dorg.gradle.java.home="$JAVA_HOME" clean assembleGithubDebug
 
