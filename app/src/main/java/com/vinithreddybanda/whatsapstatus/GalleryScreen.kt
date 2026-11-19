@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.expandVertically
@@ -22,10 +23,11 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -84,6 +86,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -475,6 +479,7 @@ private fun GlassBottomBar(
         Icons.Filled.Bookmark
     )
     val descriptions = listOf("All statuses", "Photos", "Videos", "Saved statuses")
+    val haptics = LocalHapticFeedback.current
 
     var isDragging by remember { mutableStateOf(false) }
     var dragPosition by remember(selectedIndex) { mutableStateOf(selectedIndex.toFloat()) }
@@ -522,6 +527,7 @@ private fun GlassBottomBar(
                             val destination = dragPosition.roundToInt().coerceIn(0, 3)
                             isDragging = false
                             dragStretch = 0f
+                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             onSelect(destination)
                         },
                         onDragCancel = {
@@ -587,22 +593,36 @@ private fun GlassBottomBar(
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
-                            ) { onSelect(index) },
+                            ) {
+                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onSelect(index)
+                            },
                         contentAlignment = Alignment.Center
                     ) {
-                        Image(
-                            painter = rememberVectorPainter(if (selected) filledIcons[index] else icon),
-                            contentDescription = descriptions[index],
-                            modifier = Modifier
-                                .size(23.dp)
-                                .graphicsLayer {
-                                    scaleX = iconScale
-                                    scaleY = iconScale
-                                },
-                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
-                                if (selected) palette.foreground else palette.muted
+                        AnimatedContent(
+                            targetState = selected,
+                            transitionSpec = {
+                                (androidx.compose.animation.fadeIn(tween(110)) +
+                                    androidx.compose.animation.scaleIn(initialScale = 0.72f, animationSpec = spring(dampingRatio = 0.62f))) togetherWith
+                                    (androidx.compose.animation.fadeOut(tween(80)) +
+                                        androidx.compose.animation.scaleOut(targetScale = 0.78f))
+                            },
+                            label = "tabIconMorph$index"
+                        ) { active ->
+                            Image(
+                                painter = rememberVectorPainter(if (active) filledIcons[index] else icon),
+                                contentDescription = descriptions[index],
+                                modifier = Modifier
+                                    .size(23.dp)
+                                    .graphicsLayer {
+                                        scaleX = iconScale
+                                        scaleY = iconScale
+                                    },
+                                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
+                                    if (active) palette.foreground else palette.muted
+                                )
                             )
-                        )
+                        }
                     }
                 }
             }
