@@ -89,7 +89,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -112,6 +111,8 @@ import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.highlight.Highlight
 import com.vinithreddybanda.whatsapstatus.model.Status
+import compose.icons.FeatherIcons
+import compose.icons.feathericons.*
 import com.vinithreddybanda.whatsapstatus.ui.theme.AppPalette
 import com.vinithreddybanda.whatsapstatus.ui.theme.AppType
 import com.vinithreddybanda.whatsapstatus.ui.theme.LocalAppPalette
@@ -215,7 +216,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
             if (hasPermission) {
                 Spacer(
                     Modifier.height(
-                        WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 58.dp
+                        WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 38.dp
                     )
                 )
             }
@@ -297,26 +298,16 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.TopCenter)
-                    .drawBackdrop(
-                        backdrop = backdrop,
-                        shape = { RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp) },
-                        effects = {
-                            blur(20.dp.toPx())
-                            lens(13.dp.toPx(), 18.dp.toPx())
-                        },
-                        highlight = { Highlight.Default.copy(alpha = 0.16f) },
-                        shadow = { null },
-                        onDrawSurface = {
-                            drawRect(Brush.verticalGradient(listOf(palette.glassTop.copy(alpha = 0.82f), palette.glassBottom.copy(alpha = 0.72f))))
-                        }
-                    )
                     .windowInsetsPadding(WindowInsets.statusBars)
-                    .padding(start = 22.dp, end = 22.dp, top = 8.dp, bottom = 13.dp),
+                    .padding(start = 20.dp, end = 20.dp, top = 5.dp, bottom = 3.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 BasicText(
                     "Statuses",
-                    style = AppType.display.copy(color = palette.foreground)
+                    style = AppType.body.copy(
+                        color = palette.foreground,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 )
             }
         }
@@ -386,16 +377,10 @@ private fun GlassBottomBar(
     onSelect: (Int) -> Unit
 ) {
     val outlineIcons = listOf(
-        R.drawable.lucide_ic_folder_open,
-        R.drawable.lucide_ic_images,
-        R.drawable.lucide_ic_film,
-        R.drawable.lucide_ic_bookmark
-    )
-    val filledIcons = listOf(
-        R.drawable.lucide_ic_folder,
-        R.drawable.lucide_ic_image,
-        R.drawable.lucide_ic_video,
-        R.drawable.lucide_ic_bookmark_check
+        FeatherIcons.Grid,
+        FeatherIcons.Image,
+        FeatherIcons.Film,
+        FeatherIcons.Bookmark
     )
     val descriptions = listOf("All statuses", "Photos", "Videos", "Saved statuses")
     val haptics = LocalHapticFeedback.current
@@ -560,7 +545,7 @@ private fun GlassBottomBar(
                             label = "tabIconMorph$index"
                         ) { active ->
                             Image(
-                                painter = painterResource(if (active) filledIcons[index] else icon),
+                                imageVector = icon,
                                 contentDescription = descriptions[index],
                                 modifier = Modifier
                                     .size(23.dp)
@@ -877,40 +862,41 @@ private fun StatusActionsOverlay(
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp)
+                    .padding(horizontal = 18.dp)
                     .drawBackdrop(
                         backdrop = backdrop,
-                        shape = { RoundedCornerShape(27.dp) },
+                        shape = { RoundedCornerShape(25.dp) },
                         effects = {
-                            blur(18.dp.toPx())
-                            lens(15.dp.toPx(), 21.dp.toPx())
+                            blur(20.dp.toPx())
+                            lens(17.dp.toPx(), 23.dp.toPx())
                         },
-                        highlight = { Highlight.Default.copy(alpha = 0.17f) },
+                        highlight = { Highlight.Default.copy(alpha = 0.2f) },
                         shadow = { null },
                         onDrawSurface = {
                             drawRect(Brush.verticalGradient(listOf(palette.glassTop, palette.glassBottom)))
                         }
                     )
-                    .padding(horizontal = 5.dp, vertical = 5.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 8.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(7.dp)
             ) {
                 ActionGlassButton(
                     modifier = Modifier.weight(1f),
-                    icon = if (isSaved) R.drawable.lucide_ic_trash_2 else R.drawable.lucide_ic_bookmark,
+                    icon = if (isSaved) FeatherIcons.Trash2 else FeatherIcons.Download,
                     label = if (isSaved) "Delete" else "Save",
                     palette = palette,
                     onClick = if (isSaved) onDelete else onSave
                 )
                 ActionGlassButton(
                     modifier = Modifier.weight(1f),
-                    icon = R.drawable.lucide_ic_share_2,
+                    icon = FeatherIcons.Share2,
                     label = "Share",
                     palette = palette,
                     onClick = onShare
                 )
                 ActionGlassButton(
                     modifier = Modifier.weight(1f),
-                    icon = R.drawable.lucide_ic_send,
+                    icon = FeatherIcons.Send,
                     label = "Repost",
                     palette = palette,
                     onClick = onRepost
@@ -924,7 +910,7 @@ private fun StatusActionsOverlay(
 @Composable
 private fun ActionGlassButton(
     modifier: Modifier = Modifier,
-    icon: Int,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     palette: AppPalette,
     onClick: () -> Unit
@@ -932,37 +918,27 @@ private fun ActionGlassButton(
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.93f else 1f,
-        animationSpec = spring(dampingRatio = 0.82f, stiffness = 520f),
+        targetValue = if (pressed) 0.91f else 1f,
+        animationSpec = spring(dampingRatio = 0.78f, stiffness = 560f),
         label = "glassActionPress"
     )
-    Column(
+    Box(
         modifier
-            .height(64.dp)
+            .height(56.dp)
             .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clip(RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(19.dp))
             .background(
-                if (pressed) palette.indicatorMiddle.copy(alpha = 0.72f) else Color.Transparent,
-                RoundedCornerShape(22.dp)
+                if (pressed) palette.indicatorMiddle.copy(alpha = 0.76f) else Color.Transparent,
+                RoundedCornerShape(19.dp)
             )
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
-            .padding(vertical = 7.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
         Image(
-            painter = painterResource(icon),
+            imageVector = icon,
             contentDescription = label,
-            modifier = Modifier.size(23.dp),
+            modifier = Modifier.size(26.dp),
             colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(palette.foreground)
-        )
-        Spacer(Modifier.height(5.dp))
-        BasicText(
-            label,
-            style = AppType.caption.copy(
-                color = palette.foreground.copy(alpha = 0.92f),
-                fontWeight = FontWeight.SemiBold
-            )
         )
     }
 }
