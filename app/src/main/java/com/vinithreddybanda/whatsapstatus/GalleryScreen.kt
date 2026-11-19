@@ -591,8 +591,7 @@ private fun StatusCard(
             }
             .build()
     }
-    val ratio = (status.aspectRatio ?: if (status.isVideo) 0.5625f else 0.82f)
-        .coerceIn(0.48f, 1.65f)
+    val ratio = status.aspectRatio ?: if (status.isVideo) 0.5625f else 0.82f
 
     Column(Modifier.fillMaxWidth()) {
         Box(
