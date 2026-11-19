@@ -11,7 +11,6 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.background
@@ -28,7 +27,6 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -36,8 +34,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items as lazyRowItems
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredGridItems
@@ -64,8 +60,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -91,7 +85,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -195,7 +188,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
 
     Box(Modifier.fillMaxSize()) {
         Scaffold(
-            modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.displayCutout),
+            modifier = Modifier.fillMaxSize(),
             containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
@@ -312,11 +305,13 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                     key = { tabs[it].title }
                 ) { page ->
                     val tab = tabs[page]
-                    val tabStatuses = viewModel.getVisibleStatusesForTab(tab)
-                    val statuses = remember(tabStatuses, searchQuery) {
-                        if (searchQuery.isBlank()) tabStatuses else tabStatuses.filter {
+                    val allTabStatuses = viewModel.getStatusesForTab(tab)
+                    val visibleLimit = viewModel.getVisibleStatusesForTab(tab).size
+                    val statuses = remember(allTabStatuses, searchQuery, visibleLimit) {
+                        val filtered = if (searchQuery.isBlank()) allTabStatuses else allTabStatuses.filter {
                             it.title.contains(searchQuery.trim(), ignoreCase = true)
                         }
+                        filtered.take(visibleLimit)
                     }
                     val gridState = rememberLazyStaggeredGridState()
 
