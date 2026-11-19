@@ -440,6 +440,8 @@ private fun SpringIconButton(
             .size(46.dp)
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(CircleShape)
+            .background(palette.glass.copy(alpha = 0.62f))
+            .border(0.7.dp, palette.glassBorder, CircleShape)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
