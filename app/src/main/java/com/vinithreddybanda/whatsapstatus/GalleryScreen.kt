@@ -250,17 +250,25 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp)
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(palette.placeholder.copy(alpha = 0.72f))
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(palette.glass.copy(alpha = 0.88f))
+                        .border(0.8.dp, palette.glassBorder, RoundedCornerShape(22.dp))
                         .padding(horizontal = 16.dp, vertical = 13.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Image(
+                        painter = rememberVectorPainter(LucideIcons.Search),
+                        contentDescription = null,
+                        modifier = Modifier.size(19.dp),
+                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(palette.muted)
+                    )
+                    Spacer(Modifier.width(10.dp))
                     BasicTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         singleLine = true,
                         textStyle = AppType.body.copy(color = palette.foreground),
-                        cursorBrush = SolidColor(palette.accent),
+                        cursorBrush = SolidColor(palette.foreground),
                         modifier = Modifier.weight(1f),
                         decorationBox = { innerTextField ->
                             Box {
@@ -435,12 +443,23 @@ private fun SpringIconButton(
             .clickable(interactionSource = interaction, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Image(
-            painter = rememberVectorPainter(icon),
-            contentDescription = description,
-            modifier = Modifier.size(21.dp),
-            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(palette.foreground)
-        )
+        AnimatedContent(
+            targetState = icon,
+            transitionSpec = {
+                (androidx.compose.animation.fadeIn(tween(100)) +
+                    androidx.compose.animation.scaleIn(initialScale = 0.72f, animationSpec = spring(dampingRatio = 0.62f))) togetherWith
+                    (androidx.compose.animation.fadeOut(tween(80)) +
+                        androidx.compose.animation.scaleOut(targetScale = 0.78f))
+            },
+            label = "toolbarIconMorph"
+        ) { activeIcon ->
+            Image(
+                painter = rememberVectorPainter(activeIcon),
+                contentDescription = description,
+                modifier = Modifier.size(21.dp),
+                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(palette.foreground)
+            )
+        }
     }
 }
 
