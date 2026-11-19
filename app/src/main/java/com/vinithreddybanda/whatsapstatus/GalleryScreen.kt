@@ -68,7 +68,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -81,8 +80,8 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -124,7 +123,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.FolderOpen
@@ -132,8 +130,6 @@ import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Videocam
 
@@ -150,8 +146,6 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
     var selectedStatus by remember { mutableStateOf<Status?>(null) }
     var actionStatus by remember { mutableStateOf<Status?>(null) }
     val actionVisibility = remember { MutableTransitionState(false) }
-    var searchExpanded by remember { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") }
 
     val settingsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -227,84 +221,21 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
 
     Box(Modifier.fillMaxSize().background(palette.background)) {
         Column(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
-            if (hasPermission) Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.statusBars)
-                    .padding(horizontal = 16.dp, vertical = 7.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                SpringIconButton(
-                    icon = if (searchExpanded) Icons.Outlined.Close else Icons.Outlined.Search,
-                    description = if (searchExpanded) "Close search" else "Search statuses",
-                    palette = palette,
-                    onClick = {
-                        if (searchExpanded) searchQuery = ""
-                        searchExpanded = !searchExpanded
-                    }
-                )
-                Spacer(Modifier.width(6.dp))
-                SpringIconButton(
-                    icon = Icons.Outlined.Refresh,
-                    description = "Refresh statuses",
-                    palette = palette,
-                    onClick = { viewModel.getStatuses(forceRefresh = true) }
-                )
-            }
-
-            if (hasPermission) AnimatedVisibility(
-                visible = searchExpanded,
-                enter = fadeIn(spring(stiffness = Spring.StiffnessMedium)) +
-                    expandVertically(spring(dampingRatio = Spring.DampingRatioMediumBouncy)) +
-                    scaleIn(initialScale = 0.96f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)),
-                exit = fadeOut() + shrinkVertically() + scaleOut(targetScale = 0.98f)
-            ) {
+            if (hasPermission) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp)
-                        .clip(RoundedCornerShape(22.dp))
-                        .background(palette.glass.copy(alpha = 0.88f))
-                        .border(0.8.dp, palette.glassBorder, RoundedCornerShape(22.dp))
-                        .padding(horizontal = 16.dp, vertical = 13.dp),
+                        .windowInsetsPadding(WindowInsets.statusBars)
+                        .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Image(
-                        painter = rememberVectorPainter(Icons.Outlined.Search),
-                        contentDescription = null,
-                        modifier = Modifier.size(19.dp),
-                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(palette.muted)
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    BasicTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        singleLine = true,
-                        textStyle = AppType.body.copy(color = palette.foreground),
-                        cursorBrush = SolidColor(palette.foreground),
-                        modifier = Modifier.weight(1f),
-                        decorationBox = { innerTextField ->
-                            Box {
-                                if (searchQuery.isBlank()) {
-                                    BasicText("Search", style = AppType.body.copy(color = palette.muted))
-                                }
-                                innerTextField()
-                            }
-                        }
-                    )
-                    if (searchQuery.isNotEmpty()) {
-                        Image(
-                            painter = rememberVectorPainter(Icons.Outlined.Close),
-                            contentDescription = "Clear search",
-                            modifier = Modifier
-                                .size(20.dp)
-                                .clip(CircleShape)
-                                .clickable { searchQuery = "" }
-                                .padding(2.dp),
-                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(palette.muted)
+                    BasicText(
+                        "Statuses",
+                        style = AppType.body.copy(
+                            color = palette.foreground,
+                            fontWeight = FontWeight.SemiBold
                         )
-                    }
+                    )
                 }
             }
 
@@ -324,11 +255,8 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                     val tab = tabs[page]
                     val allStatuses = viewModel.getStatusesForTab(tab)
                     val visibleLimit = viewModel.getVisibleStatusesForTab(tab).size
-                    val statuses = remember(allStatuses, searchQuery, visibleLimit) {
-                        val filtered = if (searchQuery.isBlank()) allStatuses else {
-                            allStatuses.filter { it.title.contains(searchQuery.trim(), ignoreCase = true) }
-                        }
-                        filtered.take(visibleLimit)
+                    val statuses = remember(allStatuses, visibleLimit) {
+                        allStatuses.take(visibleLimit)
                     }
                     val gridState = rememberLazyStaggeredGridState()
 
@@ -352,7 +280,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                                     end = 7.dp,
                                     top = 4.dp,
                                     bottom = WindowInsets.navigationBars.asPaddingValues()
-                                        .calculateBottomPadding() + 100.dp
+                                        .calculateBottomPadding() + 76.dp
                                 ),
                                 horizontalArrangement = Arrangement.spacedBy(7.dp),
                                 verticalItemSpacing = 7.dp,
@@ -376,7 +304,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                             (tab == StatusTab.Saved && viewModel.isSavedFetching) -> LoadingGallery(palette)
                         else -> EmptyGallery(
                             palette = palette,
-                            message = if (searchQuery.isNotBlank()) "No matches" else "Nothing here yet"
+                            message = "No statuses found"
                         )
                     }
                 }
@@ -436,50 +364,6 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
 }
 
 @Composable
-private fun SpringIconButton(
-    icon: ImageVector,
-    description: String,
-    palette: AppPalette,
-    onClick: () -> Unit
-) {
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.88f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-        label = "iconPress"
-    )
-    Box(
-        modifier = Modifier
-            .size(46.dp)
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clip(CircleShape)
-            .background(palette.glass.copy(alpha = 0.62f))
-            .border(0.7.dp, palette.glassBorder, CircleShape)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        AnimatedContent(
-            targetState = icon,
-            transitionSpec = {
-                (androidx.compose.animation.fadeIn(tween(100)) +
-                    androidx.compose.animation.scaleIn(initialScale = 0.72f, animationSpec = spring(dampingRatio = 0.62f))) togetherWith
-                    (androidx.compose.animation.fadeOut(tween(80)) +
-                        androidx.compose.animation.scaleOut(targetScale = 0.78f))
-            },
-            label = "toolbarIconMorph"
-        ) { activeIcon ->
-            Image(
-                painter = rememberVectorPainter(activeIcon),
-                contentDescription = description,
-                modifier = Modifier.size(21.dp),
-                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(palette.foreground)
-            )
-        }
-    }
-}
-
-@Composable
 private fun GlassBottomBar(
     backdrop: Backdrop,
     palette: AppPalette,
@@ -518,28 +402,27 @@ private fun GlassBottomBar(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(bottom = 9.dp),
+            .padding(bottom = 6.dp),
         contentAlignment = Alignment.Center
     ) {
         BoxWithConstraints(
             Modifier
+                .widthIn(max = 258.dp)
                 .fillMaxWidth()
-                .padding(horizontal = 25.dp)
-                .widthIn(max = 270.dp)
-                .height(70.dp)
+                .height(56.dp)
                 .drawBackdrop(
                     backdrop = backdrop,
-                    shape = { RoundedCornerShape(35.dp) },
+                    shape = { RoundedCornerShape(28.dp) },
                     effects = {
-                        blur(23.dp.toPx())
-                        lens(24.dp.toPx(), 34.dp.toPx())
+                        blur(24.dp.toPx())
+                        lens(22.dp.toPx(), 30.dp.toPx())
                     },
-                    highlight = { Highlight.Default.copy(alpha = 0.82f) },
+                    highlight = { Highlight.Default.copy(alpha = 0.92f) },
                     shadow = { null },
-                    onDrawSurface = { drawRect(palette.glass) }
+                    onDrawSurface = { drawRect(palette.glass.copy(alpha = 0.78f)) }
                 )
-                .border(0.8.dp, palette.glassBorder, RoundedCornerShape(35.dp))
-                .pointerInput(selectedIndex) {
+                .border(0.8.dp, palette.glassBorder.copy(alpha = 0.9f), RoundedCornerShape(28.dp))
+                .pointerInput(Unit) {
                     val slotWidthPx = size.width / 4f
                     detectDragGestures(
                         onDragStart = { offset ->
@@ -550,7 +433,7 @@ private fun GlassBottomBar(
                             change.consume()
                             val movement = dragAmount.x / slotWidthPx
                             dragPosition = (dragPosition + movement).coerceIn(0f, 3f)
-                            dragStretch = (kotlin.math.abs(movement) * 1.5f).coerceIn(0f, 0.36f)
+                            dragStretch = (kotlin.math.abs(movement) * 1.6f).coerceIn(0f, 0.34f)
                         },
                         onDragEnd = {
                             val destination = dragPosition.roundToInt().coerceIn(0, 3)
@@ -563,6 +446,7 @@ private fun GlassBottomBar(
                         onDragCancel = {
                             isDragging = false
                             dragStretch = 0f
+                            dragPosition = settledPosition
                         }
                     )
                 }
@@ -570,45 +454,52 @@ private fun GlassBottomBar(
             val slotWidth = maxWidth / 4
             val indicatorPosition by animateFloatAsState(
                 targetValue = if (isDragging) dragPosition else settledPosition,
-                animationSpec = spring(dampingRatio = 0.62f, stiffness = 420f),
+                animationSpec = spring(dampingRatio = 0.58f, stiffness = 430f),
                 label = "liquidTabPosition"
             )
             val indicatorStretch by animateFloatAsState(
-                targetValue = if (isDragging) 1.08f + dragStretch else 1f,
-                animationSpec = spring(dampingRatio = 0.48f, stiffness = 520f),
+                targetValue = if (isDragging) 1.16f + dragStretch else 1f,
+                animationSpec = spring(dampingRatio = 0.48f, stiffness = 560f),
                 label = "liquidTabStretch"
             )
             val indicatorHeight by animateFloatAsState(
-                targetValue = if (isDragging) 0.88f else 1f,
-                animationSpec = spring(dampingRatio = 0.52f, stiffness = 480f),
+                targetValue = if (isDragging) 0.94f else 1f,
+                animationSpec = spring(dampingRatio = 0.54f, stiffness = 500f),
                 label = "liquidTabHeight"
             )
 
             Box(
                 Modifier
-                    .offset(x = slotWidth * indicatorPosition)
-                    .padding(horizontal = 3.dp)
-                    .width(slotWidth - 6.dp)
-                    .height(58.dp)
+                    .offset(x = slotWidth * indicatorPosition + (slotWidth - 42.dp) / 2)
+                    .width(42.dp)
+                    .height(42.dp)
                     .align(Alignment.CenterStart)
                     .graphicsLayer {
                         scaleX = indicatorStretch
                         scaleY = indicatorHeight
                     }
                     .clip(CircleShape)
-                    .background(palette.accent.copy(alpha = 0.38f))
-                    .border(0.8.dp, Color.White.copy(alpha = 0.42f), CircleShape)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.White.copy(alpha = 0.34f),
+                                palette.accent.copy(alpha = 0.58f),
+                                Color.White.copy(alpha = 0.12f)
+                            )
+                        )
+                    )
+                    .border(0.9.dp, Color.White.copy(alpha = 0.48f), CircleShape)
             )
 
             Row(
-                Modifier.fillMaxSize().padding(horizontal = 3.dp),
+                Modifier.fillMaxSize(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 outlineIcons.forEachIndexed { index, icon ->
                     val highlightedIndex = if (isDragging) dragPosition.roundToInt().coerceIn(0, 3) else selectedIndex
                     val selected = highlightedIndex == index
                     val iconScale by animateFloatAsState(
-                        targetValue = if (selected) 1.12f else 0.94f,
+                        targetValue = if (selected) 1.12f else 0.92f,
                         animationSpec = spring(
                             dampingRatio = Spring.DampingRatioMediumBouncy,
                             stiffness = Spring.StiffnessMedium
@@ -633,10 +524,13 @@ private fun GlassBottomBar(
                         AnimatedContent(
                             targetState = selected,
                             transitionSpec = {
-                                (androidx.compose.animation.fadeIn(tween(110)) +
-                                    androidx.compose.animation.scaleIn(initialScale = 0.72f, animationSpec = spring(dampingRatio = 0.62f))) togetherWith
-                                    (androidx.compose.animation.fadeOut(tween(80)) +
-                                        androidx.compose.animation.scaleOut(targetScale = 0.78f))
+                                (androidx.compose.animation.fadeIn(tween(100)) +
+                                    androidx.compose.animation.scaleIn(
+                                        initialScale = 0.72f,
+                                        animationSpec = spring(dampingRatio = 0.58f)
+                                    )) togetherWith
+                                    (androidx.compose.animation.fadeOut(tween(75)) +
+                                        androidx.compose.animation.scaleOut(targetScale = 0.82f))
                             },
                             label = "tabIconMorph$index"
                         ) { active ->
@@ -644,7 +538,7 @@ private fun GlassBottomBar(
                                 painter = rememberVectorPainter(if (active) filledIcons[index] else icon),
                                 contentDescription = descriptions[index],
                                 modifier = Modifier
-                                    .size(23.dp)
+                                    .size(22.dp)
                                     .graphicsLayer {
                                         scaleX = iconScale
                                         scaleY = iconScale
@@ -737,7 +631,7 @@ private fun LoadingGallery(palette: AppPalette) {
     val ratios = listOf(0.78f, 1.12f, 0.92f, 1.28f, 0.84f, 1.02f)
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(2),
-        contentPadding = PaddingValues(start = 7.dp, end = 7.dp, top = 4.dp, bottom = 110.dp),
+        contentPadding = PaddingValues(start = 7.dp, end = 7.dp, top = 4.dp, bottom = 88.dp),
         horizontalArrangement = Arrangement.spacedBy(7.dp),
         verticalItemSpacing = 7.dp
     ) {
@@ -840,10 +734,24 @@ private fun StatusActionsOverlay(
             .build()
     }
 
+    var dragDistance by remember { mutableStateOf(0f) }
+    val animatedDragDistance by animateFloatAsState(
+        targetValue = dragDistance,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
+        label = "actionSheetDrag"
+    )
+
     Box(
         Modifier
             .fillMaxSize()
-            .background(palette.scrim)
+            .drawBackdrop(
+                backdrop = backdrop,
+                shape = { RoundedCornerShape(0.dp) },
+                effects = { blur(16.dp.toPx()) },
+                highlight = { null },
+                shadow = { null },
+                onDrawSurface = { drawRect(Color.Black.copy(alpha = 0.62f)) }
+            )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -855,19 +763,34 @@ private fun StatusActionsOverlay(
             Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 10.dp, vertical = 8.dp)
+                .padding(horizontal = 10.dp, vertical = 7.dp)
+                .graphicsLayer { translationY = animatedDragDistance }
                 .drawBackdrop(
                     backdrop = backdrop,
-                    shape = { RoundedCornerShape(30.dp) },
+                    shape = { RoundedCornerShape(27.dp) },
                     effects = {
-                        blur(18.dp.toPx())
-                        lens(18.dp.toPx(), 30.dp.toPx())
+                        blur(24.dp.toPx())
+                        lens(24.dp.toPx(), 32.dp.toPx())
                     },
-                    highlight = { Highlight.Default.copy(alpha = 0.65f) },
+                    highlight = { Highlight.Default.copy(alpha = 0.88f) },
                     shadow = { null },
-                    onDrawSurface = { drawRect(palette.glass) }
+                    onDrawSurface = { drawRect(Color(0xE6101013)) }
                 )
-                .border(0.7.dp, palette.glassBorder, RoundedCornerShape(30.dp))
+                .border(0.8.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(27.dp))
+                .pointerInput(onDismiss) {
+                    detectDragGestures(
+                        onDrag = { change, dragAmount ->
+                            if (dragAmount.y > 0f || dragDistance > 0f) {
+                                change.consume()
+                                dragDistance = (dragDistance + dragAmount.y).coerceAtLeast(0f)
+                            }
+                        },
+                        onDragEnd = {
+                            if (dragDistance > 88f) onDismiss() else dragDistance = 0f
+                        },
+                        onDragCancel = { dragDistance = 0f }
+                    )
+                }
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null
@@ -875,16 +798,23 @@ private fun StatusActionsOverlay(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
-                Modifier.padding(top = 12.dp).size(width = 34.dp, height = 4.dp)
-                    .clip(CircleShape).background(palette.muted.copy(alpha = 0.45f))
+                Modifier
+                    .padding(top = 10.dp)
+                    .size(width = 34.dp, height = 4.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.36f))
             )
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 18.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 14.dp, end = 12.dp, top = 13.dp, bottom = 15.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
-                    Modifier.size(54.dp).clip(RoundedCornerShape(14.dp)).background(palette.placeholder)
+                    Modifier
+                        .size(46.dp)
+                        .clip(RoundedCornerShape(13.dp))
+                        .background(Color.White.copy(alpha = 0.10f))
                 ) {
                     Image(
                         painter = rememberAsyncImagePainter(request),
@@ -893,23 +823,23 @@ private fun StatusActionsOverlay(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
-                Spacer(Modifier.weight(1f))
+                Spacer(Modifier.width(9.dp))
                 ActionGlassButton(
+                    modifier = Modifier.weight(1f),
                     icon = if (isSaved) Icons.Outlined.DeleteOutline else Icons.Outlined.BookmarkBorder,
-                    description = if (isSaved) "Delete saved status" else "Save status",
-                    palette = palette,
+                    label = if (isSaved) "Delete" else "Save",
                     onClick = if (isSaved) onDelete else onSave
                 )
                 ActionGlassButton(
+                    modifier = Modifier.weight(1f),
                     icon = Icons.Outlined.Share,
-                    description = "Share status",
-                    palette = palette,
+                    label = "Share",
                     onClick = onShare
                 )
                 ActionGlassButton(
+                    modifier = Modifier.weight(1f),
                     icon = Icons.AutoMirrored.Outlined.Send,
-                    description = "Send to WhatsApp",
-                    palette = palette,
+                    label = "WhatsApp",
                     onClick = onRepost
                 )
             }
@@ -919,33 +849,44 @@ private fun StatusActionsOverlay(
 
 @Composable
 private fun ActionGlassButton(
+    modifier: Modifier = Modifier,
     icon: ImageVector,
-    description: String,
-    palette: AppPalette,
+    label: String,
     onClick: () -> Unit
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.86f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        targetValue = if (pressed) 0.90f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
         label = "glassActionPress"
     )
-    Box(
-        Modifier
-            .size(52.dp)
+    Column(
+        modifier
+            .height(62.dp)
             .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clip(CircleShape)
-            .background(palette.glass.copy(alpha = 0.72f))
-            .border(0.7.dp, palette.glassBorder, CircleShape)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
-        contentAlignment = Alignment.Center
+            .clip(RoundedCornerShape(15.dp))
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .padding(vertical = 7.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Image(
             painter = rememberVectorPainter(icon),
-            contentDescription = description,
+            contentDescription = null,
             modifier = Modifier.size(21.dp),
-            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(palette.foreground)
+            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White.copy(alpha = 0.96f))
+        )
+        Spacer(Modifier.height(5.dp))
+        BasicText(
+            label,
+            style = AppType.body.copy(
+                color = Color.White.copy(alpha = 0.72f),
+                fontWeight = FontWeight.Medium
+            )
         )
     }
 }
