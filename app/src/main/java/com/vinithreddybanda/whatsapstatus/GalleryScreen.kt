@@ -268,13 +268,15 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                         }
                     )
                     if (searchQuery.isNotEmpty()) {
-                        BasicText(
-                            "Clear",
+                        Image(
+                            painter = rememberVectorPainter(Icons.Outlined.Close),
+                            contentDescription = "Clear search",
                             modifier = Modifier
+                                .size(20.dp)
                                 .clip(CircleShape)
                                 .clickable { searchQuery = "" }
-                                .padding(start = 12.dp),
-                            style = AppType.caption.copy(color = palette.accent)
+                                .padding(2.dp),
+                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(palette.muted)
                         )
                     }
                 }
