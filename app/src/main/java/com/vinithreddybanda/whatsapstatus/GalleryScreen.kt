@@ -52,6 +52,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
@@ -320,7 +321,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                         statuses.isNotEmpty() -> {
                             LazyVerticalStaggeredGrid(
                                 state = gridState,
-                                columns = StaggeredGridCells.Fixed(2),
+                                columns = StaggeredGridCells.Adaptive(150.dp),
                                 contentPadding = PaddingValues(
                                     start = 7.dp,
                                     end = 7.dp,
@@ -463,7 +464,9 @@ private fun GlassBottomBar(
     ) {
         BoxWithConstraints(
             Modifier
-                .width(252.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 28.dp)
+                .widthIn(max = 252.dp)
                 .height(68.dp)
                 .drawBackdrop(
                     backdrop = backdrop,
