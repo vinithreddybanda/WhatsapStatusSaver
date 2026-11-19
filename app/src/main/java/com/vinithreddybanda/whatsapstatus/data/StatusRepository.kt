@@ -96,16 +96,7 @@ class StatusRepository {
                 destination = File(savedPath, uniqueName)
                 if (destination.exists()) return@withContext true
 
-                var collision = 2
-                while (destination.exists()) {
-                    val nextName = if (extension.isBlank()) {
-                        baseName + "-" + suffix + "-" + collision
-                    } else {
-                        baseName + "-" + suffix + "-" + collision + "." + extension
-                    }
-                    destination = File(savedPath, nextName)
-                    collision++
-                }
+
             }
 
             status.file.copyTo(destination, overwrite = false)
