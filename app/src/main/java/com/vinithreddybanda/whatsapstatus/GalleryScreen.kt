@@ -209,7 +209,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
     Box(
         Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(palette.background, palette.placeholder.copy(alpha = 0.22f), palette.background)))
+            .background(Brush.verticalGradient(listOf(palette.background, palette.glass, palette.background)))
     ) {
         Column(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
             if (hasPermission) {
@@ -834,7 +834,7 @@ private fun StatusActionsOverlay(
                 Box(
                     Modifier
                         .widthIn(max = 260.dp)
-                        .fillMaxWidth(0.72f)
+                        .fillMaxWidth(0.88f)
                         .aspectRatio((status.aspectRatio ?: if (status.isVideo) 0.72f else 0.82f).coerceIn(0.72f, 1.18f))
                         .graphicsLayer {
                             shadowElevation = 18.dp.toPx()
