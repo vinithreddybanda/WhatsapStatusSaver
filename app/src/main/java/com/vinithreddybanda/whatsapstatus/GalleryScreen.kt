@@ -31,7 +31,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -83,13 +82,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -119,19 +117,6 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.util.Locale
 import kotlin.math.roundToInt
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Send
-import androidx.compose.material.icons.outlined.Bookmark
-import androidx.compose.material.icons.outlined.BookmarkBorder
-import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.FolderOpen
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.Movie
-import androidx.compose.material.icons.outlined.PhotoLibrary
-import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.Videocam
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -220,21 +205,34 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
     }
 
     Box(Modifier.fillMaxSize().background(palette.background)) {
+        Box(
+            Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .height(118.dp)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            palette.background,
+                            palette.background.copy(alpha = 0.94f),
+                            palette.background.copy(alpha = 0.54f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
         Column(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
             if (hasPermission) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .windowInsetsPadding(WindowInsets.statusBars)
-                        .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 8.dp),
+                        .padding(start = 22.dp, end = 22.dp, top = 2.dp, bottom = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     BasicText(
                         "Statuses",
-                        style = AppType.body.copy(
-                            color = palette.foreground,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        style = AppType.display.copy(color = palette.foreground)
                     )
                 }
             }
@@ -372,16 +370,16 @@ private fun GlassBottomBar(
     onSelect: (Int) -> Unit
 ) {
     val outlineIcons = listOf(
-        Icons.Outlined.FolderOpen,
-        Icons.Outlined.PhotoLibrary,
-        Icons.Outlined.Movie,
-        Icons.Outlined.BookmarkBorder
+        R.drawable.lucide_ic_folder_open,
+        R.drawable.lucide_ic_images,
+        R.drawable.lucide_ic_film,
+        R.drawable.lucide_ic_bookmark
     )
     val filledIcons = listOf(
-        Icons.Outlined.Folder,
-        Icons.Outlined.Image,
-        Icons.Outlined.Videocam,
-        Icons.Outlined.Bookmark
+        R.drawable.lucide_ic_folder,
+        R.drawable.lucide_ic_image,
+        R.drawable.lucide_ic_video,
+        R.drawable.lucide_ic_bookmark_check
     )
     val descriptions = listOf("All statuses", "Photos", "Videos", "Saved statuses")
     val haptics = LocalHapticFeedback.current
@@ -407,21 +405,26 @@ private fun GlassBottomBar(
     ) {
         BoxWithConstraints(
             Modifier
-                .widthIn(max = 258.dp)
+                .widthIn(max = 246.dp)
                 .fillMaxWidth()
-                .height(56.dp)
+                .height(52.dp)
                 .drawBackdrop(
                     backdrop = backdrop,
-                    shape = { RoundedCornerShape(28.dp) },
+                    shape = { RoundedCornerShape(26.dp) },
                     effects = {
-                        blur(24.dp.toPx())
-                        lens(22.dp.toPx(), 30.dp.toPx())
+                        blur(18.dp.toPx())
+                        lens(16.dp.toPx(), 22.dp.toPx())
                     },
-                    highlight = { Highlight.Default.copy(alpha = 0.92f) },
+                    highlight = { Highlight.Default.copy(alpha = 0.22f) },
                     shadow = { null },
-                    onDrawSurface = { drawRect(palette.glass.copy(alpha = 0.78f)) }
+                    onDrawSurface = {
+                        drawRect(
+                            Brush.verticalGradient(
+                                listOf(palette.glassTop, palette.glassBottom)
+                            )
+                        )
+                    }
                 )
-                .border(0.8.dp, palette.glassBorder.copy(alpha = 0.9f), RoundedCornerShape(28.dp))
                 .pointerInput(Unit) {
                     val slotWidthPx = size.width / 4f
                     detectDragGestures(
@@ -458,21 +461,21 @@ private fun GlassBottomBar(
                 label = "liquidTabPosition"
             )
             val indicatorStretch by animateFloatAsState(
-                targetValue = if (isDragging) 1.16f + dragStretch else 1f,
-                animationSpec = spring(dampingRatio = 0.48f, stiffness = 560f),
+                targetValue = if (isDragging) 1.035f + dragStretch * 0.12f else 1f,
+                animationSpec = spring(dampingRatio = 0.82f, stiffness = 420f),
                 label = "liquidTabStretch"
             )
             val indicatorHeight by animateFloatAsState(
-                targetValue = if (isDragging) 0.94f else 1f,
-                animationSpec = spring(dampingRatio = 0.54f, stiffness = 500f),
+                targetValue = if (isDragging) 0.985f else 1f,
+                animationSpec = spring(dampingRatio = 0.86f, stiffness = 440f),
                 label = "liquidTabHeight"
             )
 
             Box(
                 Modifier
-                    .offset(x = slotWidth * indicatorPosition + (slotWidth - 42.dp) / 2)
-                    .width(42.dp)
-                    .height(42.dp)
+                    .offset(x = slotWidth * indicatorPosition + (slotWidth - 38.dp) / 2)
+                    .width(38.dp)
+                    .height(38.dp)
                     .align(Alignment.CenterStart)
                     .graphicsLayer {
                         scaleX = indicatorStretch
@@ -482,13 +485,12 @@ private fun GlassBottomBar(
                     .background(
                         Brush.verticalGradient(
                             listOf(
-                                Color.White.copy(alpha = 0.34f),
-                                palette.accent.copy(alpha = 0.58f),
-                                Color.White.copy(alpha = 0.12f)
+                                palette.indicatorTop,
+                                palette.indicatorMiddle,
+                                palette.indicatorBottom
                             )
                         )
                     )
-                    .border(0.9.dp, Color.White.copy(alpha = 0.48f), CircleShape)
             )
 
             Row(
@@ -535,10 +537,10 @@ private fun GlassBottomBar(
                             label = "tabIconMorph$index"
                         ) { active ->
                             Image(
-                                painter = rememberVectorPainter(if (active) filledIcons[index] else icon),
+                                painter = painterResource(if (active) filledIcons[index] else icon),
                                 contentDescription = descriptions[index],
                                 modifier = Modifier
-                                    .size(22.dp)
+                                    .size(21.dp)
                                     .graphicsLayer {
                                         scaleX = iconScale
                                         scaleY = iconScale
@@ -581,7 +583,7 @@ private fun StatusCard(
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.975f else 1f,
+        targetValue = if (pressed) 1.018f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "mediaPress"
     )
@@ -589,8 +591,7 @@ private fun StatusCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clip(RoundedCornerShape(15.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(palette.placeholder)
             .combinedClickable(
                 interactionSource = interaction,
@@ -604,7 +605,7 @@ private fun StatusCard(
             painter = rememberAsyncImagePainter(model = request),
             contentDescription = if (status.isVideo) "Open video status" else "Open photo status",
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = scale; scaleY = scale }
         )
         if (status.isVideo) {
             Box(
@@ -616,7 +617,7 @@ private fun StatusCard(
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = rememberVectorPainter(Icons.Outlined.PlayArrow),
+                    painter = painterResource(R.drawable.lucide_ic_play),
                     contentDescription = "Play",
                     modifier = Modifier.size(27.dp),
                     colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White)
@@ -650,7 +651,7 @@ private fun LoadingGallery(palette: AppPalette) {
 @Composable
 private fun EmptyGallery(palette: AppPalette, message: String) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        BasicText(message, style = AppType.body.copy(color = palette.muted, textAlign = TextAlign.Center))
+        BasicText(message, style = AppType.caption.copy(color = palette.muted, textAlign = TextAlign.Center))
     }
 }
 
@@ -670,7 +671,7 @@ private fun AccessScreen(
             contentAlignment = Alignment.Center
         ) {
             Image(
-                painter = rememberVectorPainter(Icons.Outlined.FolderOpen),
+                painter = painterResource(R.drawable.lucide_ic_folder_open),
                 contentDescription = null,
                 modifier = Modifier.size(31.dp),
                 colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(palette.foreground)
@@ -747,10 +748,10 @@ private fun StatusActionsOverlay(
             .drawBackdrop(
                 backdrop = backdrop,
                 shape = { RoundedCornerShape(0.dp) },
-                effects = { blur(16.dp.toPx()) },
+                effects = { blur(18.dp.toPx()) },
                 highlight = { null },
                 shadow = { null },
-                onDrawSurface = { drawRect(Color.Black.copy(alpha = 0.62f)) }
+                onDrawSurface = { drawRect(palette.scrim) }
             )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -765,18 +766,12 @@ private fun StatusActionsOverlay(
                 .navigationBarsPadding()
                 .padding(horizontal = 10.dp, vertical = 7.dp)
                 .graphicsLayer { translationY = animatedDragDistance }
-                .drawBackdrop(
-                    backdrop = backdrop,
-                    shape = { RoundedCornerShape(27.dp) },
-                    effects = {
-                        blur(24.dp.toPx())
-                        lens(24.dp.toPx(), 32.dp.toPx())
-                    },
-                    highlight = { Highlight.Default.copy(alpha = 0.88f) },
-                    shadow = { null },
-                    onDrawSurface = { drawRect(Color(0xE6101013)) }
+                .clip(RoundedCornerShape(27.dp))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(palette.sheetTop, palette.sheetBottom)
+                    )
                 )
-                .border(0.8.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(27.dp))
                 .pointerInput(onDismiss) {
                     detectDragGestures(
                         onDrag = { change, dragAmount ->
@@ -802,7 +797,7 @@ private fun StatusActionsOverlay(
                     .padding(top = 10.dp)
                     .size(width = 34.dp, height = 4.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.36f))
+                    .background(palette.muted.copy(alpha = 0.48f))
             )
             Row(
                 Modifier
@@ -814,7 +809,7 @@ private fun StatusActionsOverlay(
                     Modifier
                         .size(46.dp)
                         .clip(RoundedCornerShape(13.dp))
-                        .background(Color.White.copy(alpha = 0.10f))
+                        .background(palette.placeholder.copy(alpha = 0.72f))
                 ) {
                     Image(
                         painter = rememberAsyncImagePainter(request),
@@ -826,20 +821,23 @@ private fun StatusActionsOverlay(
                 Spacer(Modifier.width(9.dp))
                 ActionGlassButton(
                     modifier = Modifier.weight(1f),
-                    icon = if (isSaved) Icons.Outlined.DeleteOutline else Icons.Outlined.BookmarkBorder,
+                    icon = if (isSaved) R.drawable.lucide_ic_trash_2 else R.drawable.lucide_ic_bookmark,
                     label = if (isSaved) "Delete" else "Save",
+                    palette = palette,
                     onClick = if (isSaved) onDelete else onSave
                 )
                 ActionGlassButton(
                     modifier = Modifier.weight(1f),
-                    icon = Icons.Outlined.Share,
+                    icon = R.drawable.lucide_ic_share_2,
                     label = "Share",
+                    palette = palette,
                     onClick = onShare
                 )
                 ActionGlassButton(
                     modifier = Modifier.weight(1f),
-                    icon = Icons.AutoMirrored.Outlined.Send,
+                    icon = R.drawable.lucide_ic_send,
                     label = "WhatsApp",
+                    palette = palette,
                     onClick = onRepost
                 )
             }
@@ -850,8 +848,9 @@ private fun StatusActionsOverlay(
 @Composable
 private fun ActionGlassButton(
     modifier: Modifier = Modifier,
-    icon: ImageVector,
+    icon: Int,
     label: String,
+    palette: AppPalette,
     onClick: () -> Unit
 ) {
     val interaction = remember { MutableInteractionSource() }
@@ -866,7 +865,7 @@ private fun ActionGlassButton(
     )
     Column(
         modifier
-            .height(62.dp)
+            .height(58.dp)
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(RoundedCornerShape(15.dp))
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)
@@ -875,16 +874,16 @@ private fun ActionGlassButton(
         verticalArrangement = Arrangement.Center
     ) {
         Image(
-            painter = rememberVectorPainter(icon),
+            painter = painterResource(icon),
             contentDescription = null,
-            modifier = Modifier.size(21.dp),
-            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White.copy(alpha = 0.96f))
+            modifier = Modifier.size(19.dp),
+            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(palette.foreground)
         )
         Spacer(Modifier.height(5.dp))
         BasicText(
             label,
             style = AppType.body.copy(
-                color = Color.White.copy(alpha = 0.72f),
+                color = palette.foreground.copy(alpha = 0.78f),
                 fontWeight = FontWeight.Medium
             )
         )
