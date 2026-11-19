@@ -4,11 +4,11 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <group
+    <path
+        android:fillColor="@android:color/transparent"
         android:strokeColor="#FF000000"
         android:strokeWidth="1.8"
         android:strokeLineCap="round"
-        android:strokeLineJoin="round">
-        <path android:pathData="M6 4h12v17l-6-4-6 4z" android:fillColor="@android:color/transparent" />
-    </group>
+        android:strokeLineJoin="round"
+        android:pathData="M6 4h12v17l-6-4-6 4z" />
 </vector>
