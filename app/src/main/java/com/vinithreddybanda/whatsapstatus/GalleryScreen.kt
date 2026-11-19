@@ -30,6 +30,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -81,6 +82,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.input.pointer.consume
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -111,8 +114,13 @@ import com.vinithreddybanda.whatsapstatus.ui.theme.LocalAppPalette
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.Locale
+import kotlin.math.roundToInt
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Image as FilledImage
+import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Close
@@ -450,11 +458,17 @@ private fun GlassBottomBar(
     modifier: Modifier = Modifier,
     onSelect: (Int) -> Unit
 ) {
-    val icons = listOf(
+    val outlineIcons = listOf(
         Icons.Outlined.FolderOpen,
         Icons.Outlined.Photo,
         Icons.Outlined.PlayCircleOutline,
         Icons.Outlined.BookmarkBorder
+    )
+    val filledIcons = listOf(
+        Icons.Filled.Folder,
+        FilledImage,
+        Icons.Filled.Movie,
+        Icons.Filled.Bookmark
     )
     val descriptions = listOf("All statuses", "Photos", "Videos", "Saved statuses")
 
@@ -462,53 +476,99 @@ private fun GlassBottomBar(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(bottom = 8.dp),
+            .padding(bottom = 9.dp),
         contentAlignment = Alignment.Center
     ) {
         BoxWithConstraints(
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 28.dp)
-                .widthIn(max = 252.dp)
-                .height(68.dp)
+                .padding(horizontal = 25.dp)
+                .widthIn(max = 270.dp)
+                .height(70.dp)
                 .drawBackdrop(
                     backdrop = backdrop,
-                    shape = { RoundedCornerShape(34.dp) },
+                    shape = { RoundedCornerShape(35.dp) },
                     effects = {
-                        blur(14.dp.toPx())
-                        lens(16.dp.toPx(), 26.dp.toPx())
+                        blur(23.dp.toPx())
+                        lens(24.dp.toPx(), 34.dp.toPx())
                     },
-                    highlight = { Highlight.Default.copy(alpha = 0.55f) },
+                    highlight = { Highlight.Default.copy(alpha = 0.82f) },
                     shadow = { null },
                     onDrawSurface = { drawRect(palette.glass) }
                 )
-                .border(0.7.dp, palette.glassBorder, RoundedCornerShape(34.dp))
+                .border(0.8.dp, palette.glassBorder, RoundedCornerShape(35.dp))
         ) {
             val slotWidth = maxWidth / 4
-            val indicatorOffset by animateDpAsState(
-                targetValue = slotWidth * selectedIndex,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                ),
-                label = "tabIndicator"
+            val slotWidthPx = with(androidx.compose.ui.platform.LocalDensity.current) {
+                slotWidth.toPx()
+            }
+            var isDragging by remember { mutableStateOf(false) }
+            var dragPosition by remember(selectedIndex) { mutableStateOf(selectedIndex.toFloat()) }
+            val indicatorPosition by animateFloatAsState(
+                targetValue = if (isDragging) dragPosition else selectedIndex.toFloat(),
+                animationSpec = spring(dampingRatio = 0.62f, stiffness = 420f),
+                label = "liquidTabPosition"
             )
+            val indicatorStretch by animateFloatAsState(
+                targetValue = if (isDragging) 1.19f else 1f,
+                animationSpec = spring(dampingRatio = 0.48f, stiffness = 520f),
+                label = "liquidTabStretch"
+            )
+            val indicatorHeight by animateFloatAsState(
+                targetValue = if (isDragging) 0.88f else 1f,
+                animationSpec = spring(dampingRatio = 0.52f, stiffness = 480f),
+                label = "liquidTabHeight"
+            )
+
             Box(
                 Modifier
-                    .offset(x = indicatorOffset)
+                    .offset(x = slotWidth * indicatorPosition)
                     .padding(horizontal = 3.dp)
                     .width(slotWidth - 6.dp)
-                    .height(56.dp)
+                    .height(58.dp)
                     .align(Alignment.CenterStart)
+                    .graphicsLayer {
+                        scaleX = indicatorStretch
+                        scaleY = indicatorHeight
+                    }
                     .clip(CircleShape)
-                    .background(palette.accent.copy(alpha = 0.15f))
+                    .background(palette.accent.copy(alpha = 0.38f))
+                    .border(0.8.dp, Color.White.copy(alpha = 0.42f), CircleShape)
+                    .pointerInput(slotWidthPx, selectedIndex) {
+                        detectDragGestures(
+                            onDragStart = { offset ->
+                                isDragging = true
+                                dragPosition = (offset.x / slotWidthPx).coerceIn(0f, 3f)
+                            },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                dragPosition = (dragPosition + dragAmount.x / slotWidthPx)
+                                    .coerceIn(0f, 3f)
+                            },
+                            onDragEnd = {
+                                val destination = dragPosition.roundToInt().coerceIn(0, 3)
+                                isDragging = false
+                                onSelect(destination)
+                            },
+                            onDragCancel = { isDragging = false }
+                        )
+                    }
             )
+
             Row(
                 Modifier.fillMaxSize().padding(horizontal = 3.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                icons.forEachIndexed { index, icon ->
+                outlineIcons.forEachIndexed { index, icon ->
                     val selected = selectedIndex == index
+                    val iconScale by animateFloatAsState(
+                        targetValue = if (selected) 1.12f else 0.94f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        ),
+                        label = "tabIconScale$index"
+                    )
                     Box(
                         Modifier
                             .weight(1f)
@@ -521,11 +581,16 @@ private fun GlassBottomBar(
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
-                            painter = rememberVectorPainter(icon),
+                            painter = rememberVectorPainter(if (selected) filledIcons[index] else icon),
                             contentDescription = descriptions[index],
-                            modifier = Modifier.size(if (selected) 23.dp else 21.dp),
+                            modifier = Modifier
+                                .size(23.dp)
+                                .graphicsLayer {
+                                    scaleX = iconScale
+                                    scaleY = iconScale
+                                },
                             colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
-                                if (selected) palette.accent else palette.muted
+                                if (selected) palette.foreground else palette.muted
                             )
                         )
                     }
