@@ -13,6 +13,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -55,6 +57,7 @@ import androidx.compose.material.icons.outlined.Photo
 import androidx.compose.material.icons.outlined.PlayCircleOutline
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -82,10 +85,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -101,21 +103,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.ui.window.DialogWindowProvider
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import coil.compose.rememberAsyncImagePainter
 import coil.decode.VideoFrameDecoder
 import coil.request.CachePolicy
 import coil.request.ImageRequest
-import com.kyant.backdrop.backdrops.LayerBackdrop
-import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur as glassBlur
-import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.highlight.Highlight
 import com.vinithreddybanda.whatsapstatus.model.Status
 import kotlinx.coroutines.launch
 import java.io.File
@@ -133,6 +124,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
     var hasPermission by remember { mutableStateOf(checkStoragePermission(context)) }
     var showAccessSheet by remember { mutableStateOf(!hasPermission) }
     var selectedStatus by remember { mutableStateOf<Status?>(null) }
+    var searchQuery by remember { mutableStateOf("") }
 
     val accessSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val actionSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -186,12 +178,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
     }
 
     val tabs = remember { listOf(StatusTab.All, StatusTab.Images, StatusTab.Videos, StatusTab.Saved) }
-    val glassBackdrop = rememberLayerBackdrop()
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { tabs.size })
-    val blurRadius by animateDpAsState(
-        targetValue = if (selectedStatus != null) 12.dp else 0.dp,
-        label = "gallery-background-blur"
-    )
 
     LaunchedEffect(viewModel.selectedTab) {
         val index = tabs.indexOf(viewModel.selectedTab)
@@ -208,48 +195,107 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
 
     Box(Modifier.fillMaxSize()) {
         Scaffold(
-            modifier = Modifier.fillMaxSize().blur(blurRadius).windowInsetsPadding(WindowInsets.displayCutout),
+            modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.displayCutout),
             containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 22.dp, end = 14.dp, top = 20.dp, bottom = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .background(MaterialTheme.colorScheme.background)
+                        .windowInsetsPadding(WindowInsets.statusBars)
+                        .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 12.dp)
                 ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            text = "Your stories",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = (-0.8).sp,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Spacer(Modifier.height(3.dp))
-                        Text(
-                            text = if (hasPermission) "${viewModel.statusList.size} stories on this device" else "Your private media space",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = "STATUS / ARCHIVE",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.secondary,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.8.sp
+                            )
+                            Spacer(Modifier.height(5.dp))
+                            Text(
+                                text = "Your stories",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = (-1.1).sp,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = if (hasPermission) viewModel.statusList.size.toString() + " moments on this device" else "Your private media space",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Surface(
+                            modifier = Modifier.size(46.dp).clickable(enabled = hasPermission) {
+                                viewModel.getStatuses(forceRefresh = true)
+                            },
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Refresh,
+                                    contentDescription = "Refresh statuses",
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
                     }
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f))
-                            .clickable(enabled = hasPermission) { viewModel.getStatuses(forceRefresh = true) },
-                        contentAlignment = Alignment.Center
+                    Spacer(Modifier.height(16.dp))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Refresh,
-                            contentDescription = "Refresh statuses",
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Search,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(19.dp)
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            Box(Modifier.weight(1f)) {
+                                if (searchQuery.isBlank()) {
+                                    Text(
+                                        "Search your stories",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                BasicTextField(
+                                    value = searchQuery,
+                                    onValueChange = { searchQuery = it },
+                                    singleLine = true,
+                                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(
+                                    onClick = { searchQuery = "" },
+                                    modifier = Modifier.size(30.dp)
+                                ) {
+                                    Icon(Icons.Outlined.Close, contentDescription = "Clear search", modifier = Modifier.size(17.dp))
+                                }
+                            }
+                        }
                     }
                 }
-            },
+            }
+        ) { innerPadding ->
+
         ) { innerPadding ->
             if (!hasPermission) {
                 AccessRequiredContent(
@@ -263,13 +309,17 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                     state = pagerState,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding)
-                        .layerBackdrop(glassBackdrop),
+                        .padding(innerPadding),
                     beyondViewportPageCount = 0,
                     key = { tabs[it].title }
                 ) { page ->
                     val tab = tabs[page]
-                    val statuses = viewModel.getVisibleStatusesForTab(tab)
+                    val tabStatuses = viewModel.getVisibleStatusesForTab(tab)
+                    val statuses = remember(tabStatuses, searchQuery) {
+                        if (searchQuery.isBlank()) tabStatuses else tabStatuses.filter {
+                            it.title.contains(searchQuery.trim(), ignoreCase = true)
+                        }
+                    }
                     val gridState = rememberLazyStaggeredGridState()
 
                     LaunchedEffect(gridState, tab, statuses.size, viewModel.isFetching) {
@@ -292,7 +342,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                                     end = 14.dp,
                                     top = 8.dp,
                                     bottom = WindowInsets.navigationBars.asPaddingValues()
-                                        .calculateBottomPadding() + 12.dp
+                                        .calculateBottomPadding() + 104.dp
                                 ),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalItemSpacing = 15.dp,
@@ -347,7 +397,6 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
         if (hasPermission) {
             LiquidTabBar(
                 selectedIndex = pagerState.currentPage,
-                backdrop = glassBackdrop,
                 modifier = Modifier.align(Alignment.BottomCenter),
                 onSelect = { index -> scope.launch { pagerState.animateScrollToPage(index) } }
             )
@@ -361,7 +410,6 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                 scrimColor = Color.Black.copy(alpha = 0.32f),
                 contentWindowInsets = { WindowInsets(0, 0, 0, 0) }
             ) {
-                HideModalStatusBar()
                 PermissionSheetContent(
                     onContinue = {
                         scope.launch {
@@ -384,9 +432,9 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
             ModalBottomSheet(
                 onDismissRequest = { selectedStatus = null },
                 sheetState = actionSheetState,
-                shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp),
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
                 containerColor = MaterialTheme.colorScheme.surface,
-                scrimColor = Color.Black.copy(alpha = 0.26f),
+                scrimColor = Color.Black.copy(alpha = 0.42f),
                 contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
                 dragHandle = {
                     Box(
@@ -458,98 +506,69 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
 @Composable
 private fun LiquidTabBar(
     selectedIndex: Int,
-    backdrop: LayerBackdrop,
     modifier: Modifier = Modifier,
     onSelect: (Int) -> Unit
 ) {
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val tabs = listOf(
         Triple(Icons.Outlined.FolderOpen, "All", 0),
         Triple(Icons.Outlined.Photo, "Photos", 1),
         Triple(Icons.Outlined.PlayCircleOutline, "Videos", 2),
         Triple(Icons.Outlined.BookmarkBorder, "Saved", 3)
     )
-    Row(
+    Surface(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 18.dp)
             .navigationBarsPadding()
             .padding(bottom = 10.dp)
             .height(68.dp)
-            .drawBackdrop(
-                backdrop = backdrop,
-                shape = { RoundedCornerShape(26.dp) },
-                effects = {
-                    glassBlur(18.dp.toPx())
-                    lens(18.dp.toPx(), 28.dp.toPx())
-                },
-                highlight = { Highlight.Default },
-                onDrawSurface = {
-                    drawRect(if (isDark) Color(0xFF202124).copy(alpha = 0.76f) else Color.White.copy(alpha = 0.70f))
-                }
-            )
-            .padding(6.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .shadow(14.dp, RoundedCornerShape(24.dp)),
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 3.dp
     ) {
-        tabs.forEach { (icon, label, page) ->
-            val selected = selectedIndex == page
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(if (selected) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f) else Color.Transparent)
-                    .clickable { onSelect(page) },
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = label,
-                    tint = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(21.dp)
-                )
-                Spacer(Modifier.height(3.dp))
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                    color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        Row(
+            modifier = Modifier.padding(5.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            tabs.forEach { (icon, label, page) ->
+                val selected = selectedIndex == page
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(19.dp))
+                        .background(
+                            if (selected) MaterialTheme.colorScheme.secondaryContainer
+                            else Color.Transparent
+                        )
+                        .clickable { onSelect(page) },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = label,
+                        tint = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
 }
 
-@Composable
-private fun HideModalStatusBar() {
-    val view = LocalView.current
-    val dialogWindow = remember(view) {
-        var parent = view.parent
-        var foundWindow: android.view.Window? = null
-        while (parent != null) {
-            if (parent is DialogWindowProvider) {
-                foundWindow = parent.window
-                break
-            }
-            parent = parent.parent
-        }
-        foundWindow
-    }
 
-    DisposableEffect(dialogWindow) {
-        dialogWindow?.let { window ->
-            window.decorView.post {
-                val controller = WindowCompat.getInsetsController(window, window.decorView)
-                controller.hide(WindowInsetsCompat.Type.statusBars())
-                controller.systemBarsBehavior =
-                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            }
-        }
-        onDispose { }
-    }
-}
 
 @Composable
 private fun StatusCard(
@@ -559,12 +578,12 @@ private fun StatusCard(
 ) {
     val context = LocalContext.current
     val cacheKey = remember(status.path, status.timestamp) {
-        "${status.path}:${status.timestamp}"
+        status.path + ":" + status.timestamp
     }
     val request = remember(cacheKey, status.isVideo) {
         ImageRequest.Builder(context)
             .data(status.file)
-            .size(512)
+            .size(480)
             .memoryCacheKey(cacheKey)
             .diskCacheKey(cacheKey)
             .memoryCachePolicy(CachePolicy.ENABLED)
@@ -575,180 +594,117 @@ private fun StatusCard(
             }
             .build()
     }
-    val painter = rememberAsyncImagePainter(model = request)
-    val intrinsic = painter.intrinsicSize
-    val naturalRatio = if (
-        intrinsic.width.isFinite() && intrinsic.height.isFinite() &&
-        intrinsic.width > 0f && intrinsic.height > 0f
-    ) {
-        intrinsic.width / intrinsic.height
-    } else {
-        null
-    }
-    val ratio = naturalRatio ?: status.aspectRatio ?: if (status.isVideo) 0.5625f else 0.86f
+    val ratio = (status.aspectRatio ?: if (status.isVideo) 0.5625f else 0.82f)
+        .coerceIn(0.48f, 1.65f)
 
     Column(Modifier.fillMaxWidth()) {
-        Card(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onOpen),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                .aspectRatio(ratio)
+                .clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .clickable(onClick = onOpen)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(ratio)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            Image(
+                painter = rememberAsyncImagePainter(model = request),
+                contentDescription = if (status.isVideo) "Video status" else "Image status",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+            if (status.isVideo) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.48f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.PlayArrow,
+                        contentDescription = "Play video",
+                        tint = Color.White,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+            }
+            Surface(
+                modifier = Modifier.align(Alignment.TopEnd).padding(9.dp).size(34.dp)
+                    .clickable(onClick = onOptions),
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.48f)
             ) {
-                Image(
-                    painter = painter,
-                    contentDescription = if (status.isVideo) "Video status" else "Image status",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-                if (status.isVideo) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(Color.Black.copy(alpha = 0.38f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.PlayArrow,
-                            contentDescription = "Play video",
-                            tint = Color.White,
-                            modifier = Modifier.size(25.dp)
-                        )
-                    }
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Outlined.MoreHoriz,
+                        contentDescription = "Status options",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            if (status.isVideo) {
+                Surface(
+                    modifier = Modifier.align(Alignment.BottomStart).padding(9.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color.Black.copy(alpha = 0.58f)
+                ) {
+                    Text(
+                        "VIDEO",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp
+                    )
                 }
             }
         }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 4.dp, top = 5.dp, end = 1.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = formatStatusTime(status.timestamp),
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1
-            )
-            IconButton(
-                onClick = onOptions,
-                modifier = Modifier.size(34.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.MoreHoriz,
-                    contentDescription = "Status options",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
+        Text(
+            text = formatStatusTime(status.timestamp),
+            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 2.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1
+        )
     }
 }
 
+
+
 @Composable
 private fun LoadingGallery() {
-    val ratios = listOf(0.72f, 1.12f, 0.9f, 1.28f, 0.82f, 1.04f)
+    val ratios = listOf(0.78f, 1.12f, 0.92f, 1.28f, 0.84f, 1.02f)
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(2),
-        contentPadding = PaddingValues(
-            start = 14.dp,
-            end = 14.dp,
-            top = 8.dp,
-            bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 18.dp
-        ),
+        contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 110.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalItemSpacing = 15.dp
+        verticalItemSpacing = 14.dp
     ) {
         items(6) { index ->
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(ratios[index])
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.78f))
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             )
         }
     }
 }
 
+
+
 @Composable
 private fun EmptyGallery(title: String, subtitle: String) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 36.dp),
+        modifier = Modifier.fillMaxSize().padding(horizontal = 36.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.FolderOpen,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            modifier = Modifier.size(42.dp)
-        )
-        Spacer(Modifier.height(14.dp))
-        Text(title, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-        Spacer(Modifier.height(5.dp))
-        Text(
-            subtitle,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun AccessRequiredContent(modifier: Modifier = Modifier, onGrant: () -> Unit) {
-    Column(
-        modifier = modifier.padding(horizontal = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.FolderOpen,
-            contentDescription = null,
-            modifier = Modifier.size(42.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(14.dp))
-        Text("Your gallery is waiting", fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(6.dp))
-        Text(
-            "Allow access to the WhatsApp status folder to see stories here.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(18.dp))
-        Button(onClick = onGrant, shape = RoundedCornerShape(16.dp)) {
-            Text("Allow access")
-        }
-    }
-}
-
-@Composable
-private fun PermissionSheetContent(onContinue: () -> Unit, onNotNow: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-            .padding(top = 8.dp, bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp),
-        horizontalAlignment = Alignment.Start
     ) {
         Box(
-            modifier = Modifier
-                .size(52.dp)
-                .clip(RoundedCornerShape(17.dp))
+            modifier = Modifier.size(76.dp).clip(RoundedCornerShape(26.dp))
                 .background(MaterialTheme.colorScheme.secondaryContainer),
             contentAlignment = Alignment.Center
         ) {
@@ -756,22 +712,99 @@ private fun PermissionSheetContent(onContinue: () -> Unit, onNotNow: () -> Unit)
                 imageVector = Icons.Outlined.FolderOpen,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(26.dp)
+                modifier = Modifier.size(32.dp)
             )
         }
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(20.dp))
         Text(
-            "One small permission",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
+            title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
         )
+        Spacer(Modifier.height(7.dp))
+        Text(
+            subtitle,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+    }
+}
+
+
+
+@Composable
+private fun AccessRequiredContent(modifier: Modifier = Modifier, onGrant: () -> Unit) {
+    Column(
+        modifier = modifier.padding(horizontal = 30.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            modifier = Modifier.size(82.dp).clip(RoundedCornerShape(28.dp))
+                .background(MaterialTheme.colorScheme.secondaryContainer),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.FolderOpen,
+                contentDescription = null,
+                modifier = Modifier.size(36.dp),
+                tint = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
+        Spacer(Modifier.height(22.dp))
+        Text("Your gallery is waiting", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Text(
-            "Status Saver needs access to the WhatsApp status folder so it can display, save and share the media already on your device. Your files stay on your phone.",
+            "Give Status Saver access to your WhatsApp status folder. Your media stays on this device.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+        Spacer(Modifier.height(22.dp))
+        Button(
+            onClick = onGrant,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            contentPadding = PaddingValues(vertical = 15.dp)
+        ) {
+            Text("Grant access")
+        }
+    }
+}
+
+
+
+@Composable
+private fun PermissionSheetContent(onContinue: () -> Unit, onNotNow: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .padding(top = 8.dp, bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp)
+    ) {
+        Box(
+            modifier = Modifier.size(58.dp).clip(RoundedCornerShape(19.dp))
+                .background(MaterialTheme.colorScheme.secondaryContainer),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Outlined.FolderOpen,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+        Spacer(Modifier.height(20.dp))
+        Text("A little access, a lot less effort", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(9.dp))
+        Text(
+            "Status Saver reads the WhatsApp status folder to show your recent photos and videos. Nothing is uploaded.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(Modifier.height(22.dp))
+        Spacer(Modifier.height(24.dp))
         Button(
             onClick = onContinue,
             modifier = Modifier.fillMaxWidth(),
@@ -781,16 +814,15 @@ private fun PermissionSheetContent(onContinue: () -> Unit, onNotNow: () -> Unit)
             Text("Continue")
         }
         Text(
-            text = "Not now",
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onNotNow)
-                .padding(vertical = 15.dp),
+            "Maybe later",
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onNotNow).padding(vertical = 16.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
     }
 }
+
+
 
 @Composable
 private fun StatusActionsSheet(
