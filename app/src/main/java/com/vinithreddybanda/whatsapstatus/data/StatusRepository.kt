@@ -78,8 +78,34 @@ class StatusRepository {
     suspend fun saveStatus(status: Status): Boolean = withContext(Dispatchers.IO) {
         try {
             if (!savedPath.exists() && !savedPath.mkdirs()) return@withContext false
-            val destination = File(savedPath, status.title)
-            status.file.copyTo(destination, overwrite = true)
+
+            val extension = status.file.extension
+            val baseName = status.file.nameWithoutExtension
+            val original = File(savedPath, status.title)
+            var destination = original
+
+            if (destination.exists()) {
+                val suffix = status.timestamp.toString()
+                val uniqueName = if (extension.isBlank()) {
+                    baseName + "-" + suffix
+                } else {
+                    baseName + "-" + suffix + "." + extension
+                }
+                destination = File(savedPath, uniqueName)
+
+                var collision = 2
+                while (destination.exists()) {
+                    val nextName = if (extension.isBlank()) {
+                        baseName + "-" + suffix + "-" + collision
+                    } else {
+                        baseName + "-" + suffix + "-" + collision + "." + extension
+                    }
+                    destination = File(savedPath, nextName)
+                    collision++
+                }
+            }
+
+            status.file.copyTo(destination, overwrite = false)
             true
         } catch (_: Exception) {
             false
