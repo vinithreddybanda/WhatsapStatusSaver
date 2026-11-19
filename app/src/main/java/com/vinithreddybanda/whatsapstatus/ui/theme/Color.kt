@@ -32,8 +32,8 @@ val LightPalette = AppPalette(
     indicatorTop = Color(0xCFFFFFFF),
     indicatorMiddle = Color(0xA8E9E5DE),
     indicatorBottom = Color(0x66D7D1C7),
-    sheetTop = Color(0xF2F8F6F1),
-    sheetBottom = Color(0xE8E8E4DE),
+    sheetTop = Color(0xDDF8F6F1),
+    sheetBottom = Color(0xD4E8E4DE),
     scrim = Color(0x660F0E0D),
     placeholder = Color(0xFFE7E3DC)
 )
@@ -50,8 +50,8 @@ val DarkPalette = AppPalette(
     indicatorTop = Color(0x38FFFFFF),
     indicatorMiddle = Color(0x292B2A31),
     indicatorBottom = Color(0x1819181D),
-    sheetTop = Color(0xF0252429),
-    sheetBottom = Color(0xF018171B),
+    sheetTop = Color(0xD02C2B31),
+    sheetBottom = Color(0xC91A191E),
     scrim = Color(0x99060508),
     placeholder = Color(0xFF242329)
 )
