@@ -7,35 +7,35 @@
     <path
         android:fillColor="@android:color/transparent"
         android:strokeColor="#FF000000"
-        android:strokeWidth="1.8"
+        android:strokeWidth="2.15"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:pathData="M3 6h18" />
     <path
         android:fillColor="@android:color/transparent"
         android:strokeColor="#FF000000"
-        android:strokeWidth="1.8"
+        android:strokeWidth="2.15"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:pathData="M8 6V4h8v2" />
     <path
         android:fillColor="@android:color/transparent"
         android:strokeColor="#FF000000"
-        android:strokeWidth="1.8"
+        android:strokeWidth="2.15"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:pathData="m19 6-1 14H6L5 6" />
     <path
         android:fillColor="@android:color/transparent"
         android:strokeColor="#FF000000"
-        android:strokeWidth="1.8"
+        android:strokeWidth="2.15"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:pathData="M10 11v5" />
     <path
         android:fillColor="@android:color/transparent"
         android:strokeColor="#FF000000"
-        android:strokeWidth="1.8"
+        android:strokeWidth="2.15"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:pathData="M14 11v5" />
