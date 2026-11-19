@@ -2,33 +2,24 @@ package com.vinithreddybanda.whatsapstatus.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// WhatsApp Modern Light Theme
-val WhatsAppLightPrimary = Color(0xFFFFFFFF)
-val WhatsAppLightSecondary = Color(0xFF25D366)
-val WhatsAppLightBackground = Color(0xFFFFFFFF)
+val WhatsAppLightPrimary = Color(0xFF20251B)
+val WhatsAppLightSecondary = Color(0xFF9BCB4A)
+val WhatsAppLightBackground = Color(0xFFF5F6F0)
 val WhatsAppLightSurface = Color(0xFFFFFFFF)
-val WhatsAppLightSurfaceVariant = Color(0xFFF0F2F5)
+val WhatsAppLightSurfaceVariant = Color(0xFFE9ECE3)
 
-// WhatsApp Modern Dark Theme (Exact)
-val WhatsAppDarkBackground = Color(0xFF0B141A) // Very dark, almost black
+val WhatsAppDarkBackground = Color(0xFF10120F)
+val WhatsAppDarkTopBar = Color(0xFF10120F)
+val WhatsAppDarkSecondary = Color(0xFFC3F36B)
+val WhatsAppDarkSurface = Color(0xFF171A15)
+val WhatsAppDarkSurfaceVariant = Color(0xFF242820)
 
-val WhatsAppDarkTopBar = Color(0xFF0B141A) 
-val WhatsAppDarkSecondary = Color(0xFF25D366) // Bright Green (FAB, Accents)
+val WhatsAppDarkTextPrimary = Color(0xFFF1F3EA)
+val WhatsAppDarkTextSecondary = Color(0xFF9A9F91)
+val WhatsAppLightTextPrimary = Color(0xFF20251B)
+val WhatsAppLightTextSecondary = Color(0xFF73796D)
 
-val WhatsAppDarkSurface = Color(0xFF0B141A) // Same as BG
-val WhatsAppDarkSurfaceVariant = Color(0xFF202C33) // Lighter for Cards/Inputs
-
-// Text Colors
-val WhatsAppDarkTextPrimary = Color(0xFFE9EDEF) // White-ish
-val WhatsAppDarkTextSecondary = Color(0xFF8696A0) // Grey
-
-val WhatsAppLightTextPrimary = Color(0xFF111B21)
-val WhatsAppLightTextSecondary = Color(0xFF8696A0)
-
-// Chip Colors (Exact from Screenshot)
-// Selected: Dark Green Pill, Bright Green Text
-val WhatsAppChipSelectedDark = Color(0xFF0A332C) 
-val WhatsAppChipSelectedTextDark = Color(0xFF25D366) 
-
-val WhatsAppChipSelectedLight = Color(0xFFD9FDD3)
-val WhatsAppChipSelectedTextLight = Color(0xFF005C4B)
+val WhatsAppChipSelectedDark = Color(0xFF354326)
+val WhatsAppChipSelectedTextDark = Color(0xFFD2F79A)
+val WhatsAppChipSelectedLight = Color(0xFFE4F2C9)
+val WhatsAppChipSelectedTextLight = Color(0xFF34491E)
