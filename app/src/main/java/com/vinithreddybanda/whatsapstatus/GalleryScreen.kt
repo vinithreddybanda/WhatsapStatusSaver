@@ -18,6 +18,8 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.Spring
@@ -250,8 +252,9 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
             if (hasPermission) AnimatedVisibility(
                 visible = searchExpanded,
                 enter = fadeIn(spring(stiffness = Spring.StiffnessMedium)) +
-                    expandVertically(spring(dampingRatio = Spring.DampingRatioMediumBouncy)),
-                exit = fadeOut() + shrinkVertically()
+                    expandVertically(spring(dampingRatio = Spring.DampingRatioMediumBouncy)) +
+                    scaleIn(initialScale = 0.96f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)),
+                exit = fadeOut() + shrinkVertically() + scaleOut(targetScale = 0.98f)
             ) {
                 Row(
                     modifier = Modifier
@@ -381,9 +384,11 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
         AnimatedVisibility(
             visibleState = actionVisibility,
             enter = fadeIn(spring(stiffness = Spring.StiffnessMedium)) +
-                slideInVertically(initialOffsetY = { it }, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)),
+                slideInVertically(initialOffsetY = { it }, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)) +
+                scaleIn(initialScale = 0.93f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)),
             exit = fadeOut() +
-                slideOutVertically(targetOffsetY = { it }, animationSpec = spring(stiffness = Spring.StiffnessMedium))
+                slideOutVertically(targetOffsetY = { it }, animationSpec = spring(stiffness = Spring.StiffnessMedium)) +
+                scaleOut(targetScale = 0.97f)
         ) {
             actionStatus?.let { status ->
             StatusActionsOverlay(
@@ -473,6 +478,7 @@ private fun GlassBottomBar(
 
     var isDragging by remember { mutableStateOf(false) }
     var dragPosition by remember(selectedIndex) { mutableStateOf(selectedIndex.toFloat()) }
+    var dragStretch by remember { mutableStateOf(0f) }
 
     Box(
         modifier = modifier
@@ -508,15 +514,20 @@ private fun GlassBottomBar(
                         },
                         onDrag = { change, dragAmount ->
                             change.consume()
-                            dragPosition = (dragPosition + dragAmount.x / slotWidthPx)
-                                .coerceIn(0f, 3f)
+                            val movement = dragAmount.x / slotWidthPx
+                            dragPosition = (dragPosition + movement).coerceIn(0f, 3f)
+                            dragStretch = (kotlin.math.abs(movement) * 1.5f).coerceIn(0f, 0.36f)
                         },
                         onDragEnd = {
                             val destination = dragPosition.roundToInt().coerceIn(0, 3)
                             isDragging = false
+                            dragStretch = 0f
                             onSelect(destination)
                         },
-                        onDragCancel = { isDragging = false }
+                        onDragCancel = {
+                            isDragging = false
+                            dragStretch = 0f
+                        }
                     )
                 }
         ) {
@@ -527,7 +538,7 @@ private fun GlassBottomBar(
                 label = "liquidTabPosition"
             )
             val indicatorStretch by animateFloatAsState(
-                targetValue = if (isDragging) 1.19f else 1f,
+                targetValue = if (isDragging) 1.08f + dragStretch else 1f,
                 animationSpec = spring(dampingRatio = 0.48f, stiffness = 520f),
                 label = "liquidTabStretch"
             )
@@ -558,7 +569,8 @@ private fun GlassBottomBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 outlineIcons.forEachIndexed { index, icon ->
-                    val selected = selectedIndex == index
+                    val highlightedIndex = if (isDragging) dragPosition.roundToInt().coerceIn(0, 3) else selectedIndex
+                    val selected = highlightedIndex == index
                     val iconScale by animateFloatAsState(
                         targetValue = if (selected) 1.12f else 0.94f,
                         animationSpec = spring(
