@@ -472,6 +472,9 @@ private fun GlassBottomBar(
     )
     val descriptions = listOf("All statuses", "Photos", "Videos", "Saved statuses")
 
+    var isDragging by remember { mutableStateOf(false) }
+    var dragPosition by remember(selectedIndex) { mutableStateOf(selectedIndex.toFloat()) }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -497,13 +500,28 @@ private fun GlassBottomBar(
                     onDrawSurface = { drawRect(palette.glass) }
                 )
                 .border(0.8.dp, palette.glassBorder, RoundedCornerShape(35.dp))
+                .pointerInput(selectedIndex) {
+                    val slotWidthPx = size.width / 4f
+                    detectDragGestures(
+                        onDragStart = { offset ->
+                            isDragging = true
+                            dragPosition = (offset.x / slotWidthPx).coerceIn(0f, 3f)
+                        },
+                        onDrag = { change, dragAmount ->
+                            change.consume()
+                            dragPosition = (dragPosition + dragAmount.x / slotWidthPx)
+                                .coerceIn(0f, 3f)
+                        },
+                        onDragEnd = {
+                            val destination = dragPosition.roundToInt().coerceIn(0, 3)
+                            isDragging = false
+                            onSelect(destination)
+                        },
+                        onDragCancel = { isDragging = false }
+                    )
+                }
         ) {
             val slotWidth = maxWidth / 4
-            val slotWidthPx = with(androidx.compose.ui.platform.LocalDensity.current) {
-                slotWidth.toPx()
-            }
-            var isDragging by remember { mutableStateOf(false) }
-            var dragPosition by remember(selectedIndex) { mutableStateOf(selectedIndex.toFloat()) }
             val indicatorPosition by animateFloatAsState(
                 targetValue = if (isDragging) dragPosition else selectedIndex.toFloat(),
                 animationSpec = spring(dampingRatio = 0.62f, stiffness = 420f),
@@ -534,25 +552,6 @@ private fun GlassBottomBar(
                     .clip(CircleShape)
                     .background(palette.accent.copy(alpha = 0.38f))
                     .border(0.8.dp, Color.White.copy(alpha = 0.42f), CircleShape)
-                    .pointerInput(slotWidthPx, selectedIndex) {
-                        detectDragGestures(
-                            onDragStart = { offset ->
-                                isDragging = true
-                                dragPosition = (offset.x / slotWidthPx).coerceIn(0f, 3f)
-                            },
-                            onDrag = { change, dragAmount ->
-                                change.consume()
-                                dragPosition = (dragPosition + dragAmount.x / slotWidthPx)
-                                    .coerceIn(0f, 3f)
-                            },
-                            onDragEnd = {
-                                val destination = dragPosition.roundToInt().coerceIn(0, 3)
-                                isDragging = false
-                                onSelect(destination)
-                            },
-                            onDragCancel = { isDragging = false }
-                        )
-                    }
             )
 
             Row(
