@@ -751,7 +751,7 @@ private fun SpringActionButton(text: String, palette: AppPalette, onClick: () ->
             .clickable(interactionSource = interaction, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        BasicText(text, style = AppType.body.copy(color = Color(0xFF17200D), fontWeight = FontWeight.SemiBold))
+        BasicText(text, style = AppType.body.copy(color = palette.foreground, fontWeight = FontWeight.SemiBold))
     }
 }
 
