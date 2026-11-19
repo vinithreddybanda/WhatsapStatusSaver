@@ -4,7 +4,9 @@ import android.graphics.BitmapFactory
 import android.os.Environment
 import com.vinithreddybanda.whatsapstatus.model.Status
 import java.io.File
+import java.io.IOException
 import java.util.Locale
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -78,10 +80,32 @@ class StatusRepository {
     suspend fun saveStatus(status: Status): Boolean = withContext(Dispatchers.IO) {
         try {
             if (!savedPath.exists() && !savedPath.mkdirs()) return@withContext false
-            val destination = File(savedPath, status.title)
-            status.file.copyTo(destination, overwrite = true)
+
+            val extension = status.file.extension
+            val baseName = status.file.nameWithoutExtension
+            val original = File(savedPath, status.title)
+            var destination = original
+
+            if (destination.exists()) {
+                val suffix = status.timestamp.toString()
+                val uniqueName = if (extension.isBlank()) {
+                    baseName + "-" + suffix
+                } else {
+                    baseName + "-" + suffix + "." + extension
+                }
+                destination = File(savedPath, uniqueName)
+                if (destination.exists()) return@withContext true
+
+
+            }
+
+            status.file.copyTo(destination, overwrite = false)
             true
-        } catch (_: Exception) {
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: IOException) {
+            false
+        } catch (_: SecurityException) {
             false
         }
     }

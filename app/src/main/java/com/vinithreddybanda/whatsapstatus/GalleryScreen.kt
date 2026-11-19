@@ -9,14 +9,37 @@ import android.os.Build
 import android.os.Environment
 import android.provider.Settings
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -26,15 +49,16 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items as lazyRowItems
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredGridItems
@@ -43,31 +67,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Send
-import androidx.compose.material.icons.outlined.BookmarkBorder
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.FolderOpen
-import androidx.compose.material.icons.outlined.MoreHoriz
-import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -79,17 +79,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
@@ -97,34 +100,41 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.ui.window.DialogWindowProvider
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import coil.compose.rememberAsyncImagePainter
 import coil.decode.VideoFrameDecoder
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.highlight.Highlight
 import com.vinithreddybanda.whatsapstatus.model.Status
+import compose.icons.FeatherIcons
+import compose.icons.feathericons.*
+import com.vinithreddybanda.whatsapstatus.ui.theme.AppPalette
+import com.vinithreddybanda.whatsapstatus.ui.theme.AppType
+import com.vinithreddybanda.whatsapstatus.ui.theme.LocalAppPalette
 import kotlinx.coroutines.launch
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
+import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
+    val palette = LocalAppPalette.current
+    val backdrop = rememberLayerBackdrop()
 
     var hasPermission by remember { mutableStateOf(checkStoragePermission(context)) }
-    var showAccessSheet by remember { mutableStateOf(!hasPermission) }
     var selectedStatus by remember { mutableStateOf<Status?>(null) }
-
-    val accessSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val actionSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var actionStatus by remember { mutableStateOf<Status?>(null) }
+    val actionVisibility = remember { MutableTransitionState(false) }
 
     val settingsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -168,24 +178,24 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
     }
 
     LaunchedEffect(hasPermission) {
-        if (hasPermission) {
-            showAccessSheet = false
-            viewModel.getStatuses()
-        }
+        if (hasPermission) viewModel.getStatuses()
+    }
+
+    LaunchedEffect(selectedStatus) {
+        if (selectedStatus != null) actionStatus = selectedStatus
+        actionVisibility.targetState = selectedStatus != null
+    }
+
+    LaunchedEffect(actionVisibility.isIdle, actionVisibility.currentState) {
+        if (actionVisibility.isIdle && !actionVisibility.currentState) actionStatus = null
     }
 
     val tabs = remember { listOf(StatusTab.All, StatusTab.Images, StatusTab.Videos, StatusTab.Saved) }
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { tabs.size })
-    val blurRadius by animateDpAsState(
-        targetValue = if (selectedStatus != null) 12.dp else 0.dp,
-        label = "gallery-background-blur"
-    )
 
     LaunchedEffect(viewModel.selectedTab) {
         val index = tabs.indexOf(viewModel.selectedTab)
-        if (index >= 0 && pagerState.currentPage != index) {
-            pagerState.animateScrollToPage(index)
-        }
+        if (index >= 0 && pagerState.currentPage != index) pagerState.animateScrollToPage(index)
     }
 
     LaunchedEffect(pagerState) {
@@ -194,105 +204,43 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
         }
     }
 
-    Box(Modifier.fillMaxSize()) {
-        Scaffold(
-            modifier = Modifier.fillMaxSize().blur(blurRadius).windowInsetsPadding(WindowInsets.displayCutout),
-            containerColor = MaterialTheme.colorScheme.background,
-            contentWindowInsets = WindowInsets(0, 0, 0, 0),
-            topBar = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.background)
-                        .padding(top = 14.dp, bottom = 8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                text = "Status Saver",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Text(
-                                text = "Your recent stories",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        IconButton(
-                            onClick = { if (hasPermission) viewModel.getStatuses(forceRefresh = true) },
-                            enabled = hasPermission
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Refresh,
-                                contentDescription = "Refresh statuses",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
+    BackHandler(enabled = selectedStatus != null) {
+        selectedStatus = null
+    }
 
-                    LazyRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 12.dp),
-                        contentPadding = PaddingValues(horizontal = 18.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        lazyRowItems(tabs) { tab ->
-                            val selected = pagerState.currentPage == tabs.indexOf(tab)
-                            FilterChip(
-                                selected = selected,
-                                onClick = {
-                                    scope.launch { pagerState.animateScrollToPage(tabs.indexOf(tab)) }
-                                },
-                                label = {
-                                    Text(
-                                        text = tab.title,
-                                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
-                                    )
-                                },
-                                shape = RoundedCornerShape(50),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
-                                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                ),
-                                border = FilterChipDefaults.filterChipBorder(
-                                    enabled = true,
-                                    selected = selected,
-                                    borderColor = Color.Transparent
-                                )
-                            )
-                        }
-                    }
-                }
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(palette.background, palette.glass, palette.background)))
+    ) {
+        Column(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
+            if (hasPermission) {
+                Spacer(
+                    Modifier.height(
+                        WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 38.dp
+                    )
+                )
             }
-        ) { innerPadding ->
+
             if (!hasPermission) {
-                AccessRequiredContent(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    onGrant = { requestAccess() }
+                AccessScreen(
+                    modifier = Modifier.weight(1f),
+                    palette = palette,
+                    onGrant = requestAccess
                 )
             } else {
                 HorizontalPager(
                     state = pagerState,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
+                    modifier = Modifier.weight(1f),
                     beyondViewportPageCount = 0,
                     key = { tabs[it].title }
                 ) { page ->
                     val tab = tabs[page]
-                    val statuses = viewModel.getVisibleStatusesForTab(tab)
+                    val allStatuses = viewModel.getStatusesForTab(tab)
+                    val visibleLimit = viewModel.getVisibleStatusesForTab(tab).size
+                    val statuses = remember(allStatuses, visibleLimit) {
+                        allStatuses.take(visibleLimit)
+                    }
                     val gridState = rememberLazyStaggeredGridState()
 
                     LaunchedEffect(gridState, tab, statuses.size, viewModel.isFetching) {
@@ -309,294 +257,393 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                         statuses.isNotEmpty() -> {
                             LazyVerticalStaggeredGrid(
                                 state = gridState,
-                                columns = StaggeredGridCells.Fixed(2),
+                                columns = StaggeredGridCells.Adaptive(150.dp),
                                 contentPadding = PaddingValues(
-                                    start = 14.dp,
-                                    end = 14.dp,
-                                    top = 8.dp,
+                                    start = 7.dp,
+                                    end = 7.dp,
+                                    top = 4.dp,
                                     bottom = WindowInsets.navigationBars.asPaddingValues()
-                                        .calculateBottomPadding() + 18.dp
+                                        .calculateBottomPadding() + 76.dp
                                 ),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalItemSpacing = 15.dp,
+                                horizontalArrangement = Arrangement.spacedBy(7.dp),
+                                verticalItemSpacing = 7.dp,
                                 modifier = Modifier.fillMaxSize()
                             ) {
                                 staggeredGridItems(
                                     items = statuses,
                                     key = { it.path },
-                                    contentType = { "status-card" }
+                                    contentType = { "media" }
                                 ) { status ->
                                     StatusCard(
                                         status = status,
+                                        palette = palette,
                                         onOpen = { openStatusFile(context, status.file) },
-                                        onOptions = { selectedStatus = status }
+                                        onLongPress = { selectedStatus = status }
                                     )
                                 }
-                                if (viewModel.isFetching) {
-                                    item {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(18.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(20.dp),
-                                                strokeWidth = 2.dp
-                                            )
-                                        }
-                                    }
-                                }
                             }
                         }
-                        (tab != StatusTab.Saved && viewModel.isFetching) || (tab == StatusTab.Saved && viewModel.isSavedFetching) -> {
-                            LoadingGallery()
-                        }
-                        else -> {
-                            EmptyGallery(
-                                title = if (tab == StatusTab.Saved) "Nothing saved yet" else "No statuses found",
-                                subtitle = if (tab == StatusTab.Saved) {
-                                    "Save a story and it will appear here."
-                                } else {
-                                    "New WhatsApp stories will appear here automatically."
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        if (showAccessSheet && !hasPermission) {
-            ModalBottomSheet(
-                onDismissRequest = { showAccessSheet = false },
-                sheetState = accessSheetState,
-                containerColor = MaterialTheme.colorScheme.surface,
-                scrimColor = Color.Black.copy(alpha = 0.32f),
-                contentWindowInsets = { WindowInsets(0, 0, 0, 0) }
-            ) {
-                HideModalStatusBar()
-                PermissionSheetContent(
-                    onContinue = {
-                        scope.launch {
-                            accessSheetState.hide()
-                            showAccessSheet = false
-                            requestAccess()
-                        }
-                    },
-                    onNotNow = {
-                        scope.launch {
-                            accessSheetState.hide()
-                            showAccessSheet = false
-                        }
-                    }
-                )
-            }
-        }
-
-        selectedStatus?.let { status ->
-            ModalBottomSheet(
-                onDismissRequest = { selectedStatus = null },
-                sheetState = actionSheetState,
-                shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp),
-                containerColor = MaterialTheme.colorScheme.surface,
-                scrimColor = Color.Black.copy(alpha = 0.26f),
-                contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
-                dragHandle = {
-                    Box(
-                        Modifier
-                            .padding(top = 12.dp)
-                            .size(width = 38.dp, height = 4.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f))
-                    )
-                }
-            ) {
-                HideModalStatusBar()
-                StatusActionsSheet(
-                    status = status,
-                    isSaved = viewModel.selectedTab == StatusTab.Saved,
-                    onClose = {
-                        scope.launch {
-                            actionSheetState.hide()
-                            selectedStatus = null
-                        }
-                    },
-                    onSave = {
-                        viewModel.saveStatus(status) { success ->
-                            Toast.makeText(
-                                context,
-                                if (success) "Saved to StatusSaver" else "Couldn't save this status",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            scope.launch {
-                                actionSheetState.hide()
-                                selectedStatus = null
-                            }
-                        }
-                    },
-                    onDelete = {
-                        viewModel.deleteStatus(status) { success ->
-                            Toast.makeText(
-                                context,
-                                if (success) "Removed from saved" else "Couldn't delete this status",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            scope.launch {
-                                actionSheetState.hide()
-                                selectedStatus = null
-                            }
-                        }
-                    },
-                    onShare = {
-                        scope.launch {
-                            actionSheetState.hide()
-                            selectedStatus = null
-                            shareStatusFile(context, status.file, share = true)
-                        }
-                    },
-                    onRepost = {
-                        scope.launch {
-                            actionSheetState.hide()
-                            selectedStatus = null
-                            shareStatusFile(context, status.file, share = false)
-                        }
-                    }
-                )
-            }
-        }
-    }
-}
-
-
-@Composable
-private fun HideModalStatusBar() {
-    val view = LocalView.current
-    val dialogWindow = remember(view) {
-        var parent = view.parent
-        var foundWindow: android.view.Window? = null
-        while (parent != null) {
-            if (parent is DialogWindowProvider) {
-                foundWindow = parent.window
-                break
-            }
-            parent = parent.parent
-        }
-        foundWindow
-    }
-
-    DisposableEffect(dialogWindow) {
-        dialogWindow?.let { window ->
-            window.decorView.post {
-                val controller = WindowCompat.getInsetsController(window, window.decorView)
-                controller.hide(WindowInsetsCompat.Type.statusBars())
-                controller.systemBarsBehavior =
-                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            }
-        }
-        onDispose { }
-    }
-}
-
-@Composable
-private fun StatusCard(
-    status: Status,
-    onOpen: () -> Unit,
-    onOptions: () -> Unit
-) {
-    val context = LocalContext.current
-    val cacheKey = remember(status.path, status.timestamp) {
-        "${status.path}:${status.timestamp}"
-    }
-    val request = remember(cacheKey, status.isVideo) {
-        ImageRequest.Builder(context)
-            .data(status.file)
-            .size(512)
-            .memoryCacheKey(cacheKey)
-            .diskCacheKey(cacheKey)
-            .memoryCachePolicy(CachePolicy.ENABLED)
-            .diskCachePolicy(CachePolicy.ENABLED)
-            .crossfade(false)
-            .apply {
-                if (status.isVideo) decoderFactory(VideoFrameDecoder.Factory())
-            }
-            .build()
-    }
-    val painter = rememberAsyncImagePainter(model = request)
-    val intrinsic = painter.intrinsicSize
-    val naturalRatio = if (
-        intrinsic.width.isFinite() && intrinsic.height.isFinite() &&
-        intrinsic.width > 0f && intrinsic.height > 0f
-    ) {
-        intrinsic.width / intrinsic.height
-    } else {
-        null
-    }
-    val ratio = naturalRatio ?: status.aspectRatio ?: if (status.isVideo) 0.5625f else 0.86f
-
-    Column(Modifier.fillMaxWidth()) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onOpen),
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(ratio)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Image(
-                    painter = painter,
-                    contentDescription = if (status.isVideo) "Video status" else "Image status",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-                if (status.isVideo) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(Color.Black.copy(alpha = 0.38f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.PlayArrow,
-                            contentDescription = "Play video",
-                            tint = Color.White,
-                            modifier = Modifier.size(25.dp)
+                        (tab != StatusTab.Saved && viewModel.isFetching && !viewModel.hasCompletedInitialScan) ||
+                            (tab == StatusTab.Saved && viewModel.isSavedFetching && !viewModel.hasCompletedSavedLoad) -> LoadingGallery(palette)
+                        else -> EmptyGallery(
+                            palette = palette,
+                            message = "No statuses found"
                         )
                     }
                 }
             }
         }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 4.dp, top = 5.dp, end = 1.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = formatStatusTime(status.timestamp),
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1
-            )
-            IconButton(
-                onClick = onOptions,
-                modifier = Modifier.size(34.dp)
+        if (hasPermission) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(start = 20.dp, end = 20.dp, top = 5.dp, bottom = 3.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.MoreHoriz,
-                    contentDescription = "Status options",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(20.dp)
+                BasicText(
+                    "Statuses",
+                    style = AppType.body.copy(
+                        color = palette.foreground,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                )
+            }
+        }
+
+        if (hasPermission) {
+            GlassBottomBar(
+                backdrop = backdrop,
+                palette = palette,
+                selectedIndex = pagerState.currentPage,
+                modifier = Modifier.align(Alignment.BottomCenter),
+                onSelect = { index -> scope.launch { pagerState.animateScrollToPage(index) } }
+            )
+        }
+
+        AnimatedVisibility(
+            visibleState = actionVisibility,
+            enter = fadeIn(tween(190, easing = FastOutSlowInEasing)) +
+                slideInVertically(
+                    initialOffsetY = { it / 4 },
+                    animationSpec = spring(dampingRatio = 0.88f, stiffness = 360f)
+                ),
+            exit = fadeOut(tween(150, easing = FastOutSlowInEasing)) +
+                slideOutVertically(
+                    targetOffsetY = { it / 6 },
+                    animationSpec = tween(190, easing = FastOutSlowInEasing)
+                )
+        ) {
+            actionStatus?.let { status ->
+            StatusActionsOverlay(
+                backdrop = backdrop,
+                palette = palette,
+                status = status,
+                isSaved = viewModel.selectedTab == StatusTab.Saved,
+                onDismiss = { selectedStatus = null },
+                onSave = {
+                    viewModel.saveStatus(status) { success ->
+                        Toast.makeText(context, if (success) "Saved" else "Couldn't save", Toast.LENGTH_SHORT).show()
+                        selectedStatus = null
+                    }
+                },
+                onDelete = {
+                    viewModel.deleteStatus(status) { success ->
+                        Toast.makeText(context, if (success) "Deleted" else "Couldn't delete", Toast.LENGTH_SHORT).show()
+                        selectedStatus = null
+                    }
+                },
+                onShare = {
+                    selectedStatus = null
+                    shareStatusFile(context, status.file, share = true)
+                },
+                onRepost = {
+                    selectedStatus = null
+                    shareStatusFile(context, status.file, share = false)
+                }
+            )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GlassBottomBar(
+    backdrop: Backdrop,
+    palette: AppPalette,
+    selectedIndex: Int,
+    modifier: Modifier = Modifier,
+    onSelect: (Int) -> Unit
+) {
+    val outlineIcons = listOf(
+        FeatherIcons.Grid,
+        FeatherIcons.Image,
+        FeatherIcons.Film,
+        FeatherIcons.Bookmark
+    )
+    val descriptions = listOf("All statuses", "Photos", "Videos", "Saved statuses")
+    val haptics = LocalHapticFeedback.current
+
+    var isDragging by remember { mutableStateOf(false) }
+    var dragPosition by remember { mutableStateOf(selectedIndex.toFloat()) }
+    var settledPosition by remember { mutableStateOf(selectedIndex.toFloat()) }
+    var dragStretch by remember { mutableStateOf(0f) }
+
+    LaunchedEffect(selectedIndex) {
+        if (!isDragging) {
+            settledPosition = selectedIndex.toFloat()
+            dragPosition = selectedIndex.toFloat()
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(bottom = 6.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        BoxWithConstraints(
+            Modifier
+                .widthIn(max = 246.dp)
+                .fillMaxWidth()
+                .height(52.dp)
+                .drawBackdrop(
+                    backdrop = backdrop,
+                    shape = { RoundedCornerShape(26.dp) },
+                    effects = {
+                        blur(18.dp.toPx())
+                        lens(16.dp.toPx(), 22.dp.toPx())
+                    },
+                    highlight = { Highlight.Default.copy(alpha = 0.22f) },
+                    shadow = { null },
+                    onDrawSurface = {
+                        drawRect(
+                            Brush.verticalGradient(
+                                listOf(palette.glassTop, palette.glassBottom)
+                            )
+                        )
+                        drawRect(
+                            Brush.radialGradient(
+                                colors = listOf(palette.glassGlow, Color.Transparent),
+                                center = Offset(size.width * 0.24f, size.height * 0.02f),
+                                radius = size.width * 0.88f
+                            )
+                        )
+                    }
+                )
+                .pointerInput(Unit) {
+                    val slotWidthPx = size.width / 4f
+                    detectDragGestures(
+                        onDragStart = { offset ->
+                            isDragging = true
+                            dragPosition = (offset.x / slotWidthPx).coerceIn(0f, 3f)
+                        },
+                        onDrag = { change, dragAmount ->
+                            change.consume()
+                            val movement = dragAmount.x / slotWidthPx
+                            dragPosition = (dragPosition + movement).coerceIn(0f, 3f)
+                            dragStretch = (kotlin.math.abs(movement) * 1.6f).coerceIn(0f, 0.34f)
+                        },
+                        onDragEnd = {
+                            val destination = dragPosition.roundToInt().coerceIn(0, 3)
+                            settledPosition = destination.toFloat()
+                            isDragging = false
+                            dragStretch = 0f
+                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onSelect(destination)
+                        },
+                        onDragCancel = {
+                            isDragging = false
+                            dragStretch = 0f
+                            dragPosition = settledPosition
+                        }
+                    )
+                }
+        ) {
+            val slotWidth = maxWidth / 4
+            val indicatorPosition by animateFloatAsState(
+                targetValue = if (isDragging) dragPosition else settledPosition,
+                animationSpec = spring(dampingRatio = 0.86f, stiffness = 420f),
+                label = "liquidTabPosition"
+            )
+            val indicatorStretch by animateFloatAsState(
+                targetValue = if (isDragging) 1.035f + dragStretch * 0.12f else 1f,
+                animationSpec = spring(dampingRatio = 0.82f, stiffness = 420f),
+                label = "liquidTabStretch"
+            )
+            val indicatorHeight by animateFloatAsState(
+                targetValue = if (isDragging) 0.985f else 1f,
+                animationSpec = spring(dampingRatio = 0.86f, stiffness = 440f),
+                label = "liquidTabHeight"
+            )
+
+            Box(
+                Modifier
+                    .offset(x = slotWidth * indicatorPosition + (slotWidth - 38.dp) / 2)
+                    .width(38.dp)
+                    .height(38.dp)
+                    .align(Alignment.CenterStart)
+                    .graphicsLayer {
+                        scaleX = indicatorStretch
+                        scaleY = indicatorHeight
+                    }
+                    .clip(CircleShape)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                palette.indicatorTop,
+                                palette.indicatorMiddle,
+                                palette.indicatorBottom
+                            )
+                        )
+                    )
+            )
+
+            Row(
+                Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                outlineIcons.forEachIndexed { index, icon ->
+                    val highlightedIndex = if (isDragging) dragPosition.roundToInt().coerceIn(0, 3) else selectedIndex
+                    val selected = highlightedIndex == index
+                    val iconScale by animateFloatAsState(
+                        targetValue = if (selected) 1.04f else 0.96f,
+                        animationSpec = spring(
+                            dampingRatio = 0.88f,
+                            stiffness = 520f
+                        ),
+                        label = "tabIconScale$index"
+                    )
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                settledPosition = index.toFloat()
+                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onSelect(index)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AnimatedContent(
+                            targetState = selected,
+                            transitionSpec = {
+                                (androidx.compose.animation.fadeIn(tween(150, easing = FastOutSlowInEasing)) +
+                                    androidx.compose.animation.scaleIn(
+                                        initialScale = 0.94f,
+                                        animationSpec = tween(180, easing = FastOutSlowInEasing)
+                                    )) togetherWith
+                                    (androidx.compose.animation.fadeOut(tween(90)) +
+                                        androidx.compose.animation.scaleOut(targetScale = 0.97f))
+                            },
+                            label = "tabIconMorph$index"
+                        ) { active ->
+                            Image(
+                                imageVector = icon,
+                                contentDescription = descriptions[index],
+                                modifier = Modifier
+                                    .size(23.dp)
+                                    .graphicsLayer {
+                                        scaleX = iconScale
+                                        scaleY = iconScale
+                                    },
+                                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
+                                    if (active) palette.foreground else palette.muted
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun StatusCard(
+    status: Status,
+    palette: AppPalette,
+    onOpen: () -> Unit,
+    onLongPress: () -> Unit
+) {
+    val context = LocalContext.current
+    val cacheKey = remember(status.path, status.timestamp) { "${status.path}:${status.timestamp}" }
+    val request = remember(cacheKey, status.isVideo) {
+        ImageRequest.Builder(context)
+            .data(status.file)
+            .size(480)
+            .memoryCacheKey(cacheKey)
+            .diskCacheKey(cacheKey)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .crossfade(false)
+            .apply { if (status.isVideo) decoderFactory(VideoFrameDecoder.Factory()) }
+            .build()
+    }
+    val ratio = status.aspectRatio ?: if (status.isVideo) 0.5625f else 0.82f
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val hovered by interaction.collectIsHoveredAsState()
+    val scale by animateFloatAsState(
+        targetValue = when {
+            pressed -> 0.985f
+            hovered -> 1.012f
+            else -> 1f
+        },
+        animationSpec = spring(dampingRatio = 0.82f, stiffness = 430f),
+        label = "mediaCardMotion"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                translationY = if (hovered) -3.dp.toPx() else 0f
+                shadowElevation = if (hovered) 12.dp.toPx() else 2.dp.toPx()
+                shape = RoundedCornerShape(18.dp)
+                clip = true
+            }
+            .clip(RoundedCornerShape(18.dp))
+            .background(palette.placeholder)
+            .hoverable(interaction)
+            .combinedClickable(
+                interactionSource = interaction,
+                indication = null,
+                onClick = onOpen,
+                onLongClick = onLongPress
+            )
+            .aspectRatio(ratio)
+    ) {
+        Image(
+            painter = rememberAsyncImagePainter(model = request),
+            contentDescription = if (status.isVideo) "Open video status" else "Open photo status",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+        if (status.isVideo) {
+            Box(
+                Modifier
+                    .align(Alignment.Center)
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.32f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.lucide_ic_play),
+                    contentDescription = "Play",
+                    modifier = Modifier.size(27.dp),
+                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White)
                 )
             }
         }
@@ -604,146 +651,97 @@ private fun StatusCard(
 }
 
 @Composable
-private fun LoadingGallery() {
-    val ratios = listOf(0.72f, 1.12f, 0.9f, 1.28f, 0.82f, 1.04f)
+private fun LoadingGallery(palette: AppPalette) {
+    val ratios = listOf(0.78f, 1.12f, 0.92f, 1.28f, 0.84f, 1.02f)
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(2),
-        contentPadding = PaddingValues(
-            start = 14.dp,
-            end = 14.dp,
-            top = 8.dp,
-            bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 18.dp
-        ),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalItemSpacing = 15.dp
+        contentPadding = PaddingValues(start = 7.dp, end = 7.dp, top = 4.dp, bottom = 88.dp),
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
+        verticalItemSpacing = 7.dp
     ) {
         items(6) { index ->
             Box(
-                modifier = Modifier
+                Modifier
                     .fillMaxWidth()
                     .aspectRatio(ratios[index])
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.78f))
+                    .clip(RoundedCornerShape(15.dp))
+                    .background(palette.placeholder)
             )
         }
     }
 }
 
 @Composable
-private fun EmptyGallery(title: String, subtitle: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 36.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.FolderOpen,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            modifier = Modifier.size(42.dp)
-        )
-        Spacer(Modifier.height(14.dp))
-        Text(title, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-        Spacer(Modifier.height(5.dp))
-        Text(
-            subtitle,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+private fun EmptyGallery(palette: AppPalette, message: String) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        BasicText(message, style = AppType.body.copy(color = palette.muted, textAlign = TextAlign.Center))
     }
 }
 
 @Composable
-private fun AccessRequiredContent(modifier: Modifier = Modifier, onGrant: () -> Unit) {
+private fun AccessScreen(
+    modifier: Modifier = Modifier,
+    palette: AppPalette,
+    onGrant: () -> Unit
+) {
     Column(
-        modifier = modifier.padding(horizontal = 32.dp),
+        modifier = modifier.fillMaxWidth().padding(horizontal = 34.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.FolderOpen,
-            contentDescription = null,
-            modifier = Modifier.size(42.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(14.dp))
-        Text("Your gallery is waiting", fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(6.dp))
-        Text(
-            "Allow access to the WhatsApp status folder to see stories here.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(18.dp))
-        Button(onClick = onGrant, shape = RoundedCornerShape(16.dp)) {
-            Text("Allow access")
-        }
-    }
-}
-
-@Composable
-private fun PermissionSheetContent(onContinue: () -> Unit, onNotNow: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-            .padding(top = 8.dp, bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp),
-        horizontalAlignment = Alignment.Start
     ) {
         Box(
-            modifier = Modifier
-                .size(52.dp)
-                .clip(RoundedCornerShape(17.dp))
-                .background(MaterialTheme.colorScheme.secondaryContainer),
+            Modifier.size(76.dp).clip(RoundedCornerShape(26.dp)).background(palette.placeholder),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Outlined.FolderOpen,
+            Image(
+                painter = painterResource(R.drawable.lucide_ic_folder_open),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(26.dp)
+                modifier = Modifier.size(31.dp),
+                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(palette.foreground)
             )
         }
-        Spacer(Modifier.height(18.dp))
-        Text(
-            "One small permission",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "Status Saver needs access to the WhatsApp status folder so it can display, save and share the media already on your device. Your files stay on your phone.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
         Spacer(Modifier.height(22.dp))
-        Button(
-            onClick = onContinue,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            contentPadding = PaddingValues(vertical = 15.dp)
-        ) {
-            Text("Continue")
-        }
-        Text(
-            text = "Not now",
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onNotNow)
-                .padding(vertical = 15.dp),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        BasicText("Allow access", style = AppType.display.copy(color = palette.foreground))
+        Spacer(Modifier.height(7.dp))
+        BasicText(
+            "To find WhatsApp statuses on this device.",
+            style = AppType.body.copy(color = palette.muted, textAlign = TextAlign.Center)
         )
+        Spacer(Modifier.height(24.dp))
+        SpringActionButton(text = "Continue", palette = palette, onClick = onGrant)
     }
 }
 
 @Composable
-private fun StatusActionsSheet(
+private fun SpringActionButton(text: String, palette: AppPalette, onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.985f else 1f,
+        animationSpec = spring(dampingRatio = 0.9f, stiffness = 560f),
+        label = "actionPress"
+    )
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(54.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(RoundedCornerShape(18.dp))
+            .background(palette.accent)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        BasicText(text, style = AppType.body.copy(color = palette.foreground, fontWeight = FontWeight.SemiBold))
+    }
+}
+
+@Composable
+private fun StatusActionsOverlay(
+    backdrop: Backdrop,
+    palette: AppPalette,
     status: Status,
     isSaved: Boolean,
-    onClose: () -> Unit,
+    onDismiss: () -> Unit,
     onSave: () -> Unit,
     onDelete: () -> Unit,
     onShare: () -> Unit,
@@ -753,110 +751,196 @@ private fun StatusActionsSheet(
     val request = remember(status.path, status.timestamp) {
         ImageRequest.Builder(context)
             .data(status.file)
-            .size(220)
+            .size(720)
             .memoryCacheKey("${status.path}:${status.timestamp}")
             .crossfade(false)
             .apply { if (status.isVideo) decoderFactory(VideoFrameDecoder.Factory()) }
             .build()
     }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 22.dp)
-            .padding(top = 12.dp, bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 22.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Card(
-                modifier = Modifier.size(66.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Image(
-                    painter = rememberAsyncImagePainter(request),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = status.title,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(Modifier.height(3.dp))
-                Text(
-                    text = formatStatusTime(status.timestamp),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            IconButton(onClick = onClose) {
-                Icon(Icons.Outlined.Close, contentDescription = "Close")
-            }
-        }
 
-        Spacer(Modifier.height(22.dp))
-        Text(
-            "ACTIONS",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = 1.1.sp
-        )
-        Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            ActionTile(
-                icon = if (isSaved) Icons.Outlined.DeleteOutline else Icons.Outlined.BookmarkBorder,
-                label = if (isSaved) "Delete" else "Save",
-                modifier = Modifier.weight(1f),
-                onClick = if (isSaved) onDelete else onSave
+    var dragDistance by remember { mutableStateOf(0f) }
+    val animatedDragDistance by animateFloatAsState(
+        targetValue = dragDistance,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
+        label = "actionSheetDrag"
+    )
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .drawBackdrop(
+                backdrop = backdrop,
+                shape = { RoundedCornerShape(0.dp) },
+                effects = { blur(18.dp.toPx()) },
+                highlight = { null },
+                shadow = { null },
+                onDrawSurface = { drawRect(palette.scrim) }
             )
-            ActionTile(
-                icon = Icons.Outlined.Share,
-                label = "Share",
-                modifier = Modifier.weight(1f),
-                onClick = onShare
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onDismiss
+            ),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 10.dp, vertical = 7.dp)
+                .graphicsLayer { translationY = animatedDragDistance }
+                .clip(RoundedCornerShape(27.dp))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(palette.sheetTop, palette.sheetBottom)
+                    )
+                )
+                .pointerInput(onDismiss) {
+                    detectDragGestures(
+                        onDrag = { change, dragAmount ->
+                            if (dragAmount.y > 0f || dragDistance > 0f) {
+                                change.consume()
+                                dragDistance = (dragDistance + dragAmount.y).coerceAtLeast(0f)
+                            }
+                        },
+                        onDragEnd = {
+                            if (dragDistance > 88f) onDismiss() else dragDistance = 0f
+                        },
+                        onDragCancel = { dragDistance = 0f }
+                    )
+                }
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {},
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                Modifier
+                    .padding(top = 10.dp)
+                    .size(width = 34.dp, height = 4.dp)
+                    .clip(CircleShape)
+                    .background(palette.muted.copy(alpha = 0.48f))
             )
-            ActionTile(
-                icon = Icons.AutoMirrored.Outlined.Send,
-                label = "WhatsApp",
-                modifier = Modifier.weight(1f),
-                onClick = onRepost
-            )
+            Box(
+                Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 18.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    Modifier
+                        .widthIn(max = 260.dp)
+                        .fillMaxWidth(0.88f)
+                        .aspectRatio((status.aspectRatio ?: if (status.isVideo) 0.72f else 0.82f).coerceIn(0.72f, 1.18f))
+                        .graphicsLayer {
+                            shadowElevation = 18.dp.toPx()
+                            shape = RoundedCornerShape(23.dp)
+                            clip = true
+                        }
+                        .clip(RoundedCornerShape(23.dp))
+                        .background(palette.placeholder)
+                ) {
+                    Image(
+                        painter = rememberAsyncImagePainter(request),
+                        contentDescription = if (status.isVideo) "Selected video preview" else "Selected photo preview",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    if (status.isVideo) {
+                        Box(
+                            Modifier.align(Alignment.Center).size(46.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.42f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(R.drawable.lucide_ic_play),
+                                contentDescription = "Video",
+                                modifier = Modifier.size(26.dp),
+                                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White)
+                            )
+                        }
+                    }
+                }
+            }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp)
+                    .drawBackdrop(
+                        backdrop = backdrop,
+                        shape = { RoundedCornerShape(25.dp) },
+                        effects = {
+                            blur(20.dp.toPx())
+                            lens(17.dp.toPx(), 23.dp.toPx())
+                        },
+                        highlight = { Highlight.Default.copy(alpha = 0.2f) },
+                        shadow = { null },
+                        onDrawSurface = {
+                            drawRect(Brush.verticalGradient(listOf(palette.glassTop, palette.glassBottom)))
+                        }
+                    )
+                    .padding(horizontal = 8.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(7.dp)
+            ) {
+                ActionGlassButton(
+                    modifier = Modifier.weight(1f),
+                    icon = if (isSaved) FeatherIcons.Trash2 else FeatherIcons.Download,
+                    label = if (isSaved) "Delete" else "Save",
+                    palette = palette,
+                    onClick = if (isSaved) onDelete else onSave
+                )
+                ActionGlassButton(
+                    modifier = Modifier.weight(1f),
+                    icon = FeatherIcons.Share2,
+                    label = "Share",
+                    palette = palette,
+                    onClick = onShare
+                )
+                ActionGlassButton(
+                    modifier = Modifier.weight(1f),
+                    icon = FeatherIcons.Send,
+                    label = "Repost",
+                    palette = palette,
+                    onClick = onRepost
+                )
+            }
+            Spacer(Modifier.height(12.dp))
         }
     }
 }
 
 @Composable
-private fun ActionTile(
-    icon: ImageVector,
-    label: String,
+private fun ActionGlassButton(
     modifier: Modifier = Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    palette: AppPalette,
     onClick: () -> Unit
 ) {
-    Surface(
-        modifier = modifier
-            .height(94.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f)
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(23.dp)
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.91f else 1f,
+        animationSpec = spring(dampingRatio = 0.78f, stiffness = 560f),
+        label = "glassActionPress"
+    )
+    Box(
+        modifier
+            .height(56.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(RoundedCornerShape(19.dp))
+            .background(
+                if (pressed) palette.indicatorMiddle.copy(alpha = 0.76f) else Color.Transparent,
+                RoundedCornerShape(19.dp)
             )
-            Spacer(Modifier.height(9.dp))
-            Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
-        }
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            imageVector = icon,
+            contentDescription = label,
+            modifier = Modifier.size(26.dp),
+            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(palette.foreground)
+        )
     }
 }
 
@@ -874,9 +958,8 @@ private fun checkStoragePermission(context: Context): Boolean {
 private fun openStatusFile(context: Context, file: File) {
     try {
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-        val mimeType = mediaMimeType(file)
         val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, mimeType)
+            setDataAndType(uri, mediaMimeType(file))
             clipData = ClipData.newUri(context.contentResolver, file.name, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
@@ -915,8 +998,4 @@ private fun mediaMimeType(file: File): String {
         "webp" -> "image/webp"
         else -> "image/jpeg"
     }
-}
-
-private fun formatStatusTime(timestamp: Long): String {
-    return SimpleDateFormat("dd MMM · hh:mm a", Locale.getDefault()).format(Date(timestamp))
 }
