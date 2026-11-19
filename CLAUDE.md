@@ -8,7 +8,8 @@
 - Use lazy staggered grids with stable item keys and content types. Preserve intrinsic image ratios; do not force every media card to the same height.
 - Load downsampled thumbnails through Coil. Cache by file path plus modification time, avoid expensive video-frame work during fast scrolling, and do not crossfade every thumbnail.
 - Keep modal blur scoped to the background while a sheet is visible. Avoid permanent blur layers during normal scrolling.
-- Use WindowInsetsControllerCompat for immersive status-bar behavior. Respect display cutouts, navigation gestures and system-owned UI.
+- Keep the status bar visible and transparent with theme-aware system icons; never hide it globally. Use edge-to-edge insets for tappable content, respect display cutouts and navigation gestures.
+- Prefer restrained state-driven Compose motion. Avoid permanent blur, backdrop sampling and per-frame effects in scrolling media grids; keep image requests downsampled and cached.
 - Keep storage access user initiated. Explain why broad access is required before opening Android's special-access screen.
 - Use case-insensitive file extensions and grant read URI permissions when opening or sharing files.
 - Keep UI state in the ViewModel and filesystem operations in the repository.
