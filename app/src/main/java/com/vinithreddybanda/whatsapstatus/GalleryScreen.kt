@@ -13,10 +13,13 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -111,6 +114,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Photo
 import androidx.compose.material.icons.outlined.PlayArrow
@@ -130,6 +134,8 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
 
     var hasPermission by remember { mutableStateOf(checkStoragePermission(context)) }
     var selectedStatus by remember { mutableStateOf<Status?>(null) }
+    var actionStatus by remember { mutableStateOf<Status?>(null) }
+    val actionVisibility = remember { MutableTransitionState(false) }
     var searchExpanded by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
 
@@ -178,6 +184,15 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
         if (hasPermission) viewModel.getStatuses()
     }
 
+    LaunchedEffect(selectedStatus) {
+        if (selectedStatus != null) actionStatus = selectedStatus
+        actionVisibility.targetState = selectedStatus != null
+    }
+
+    LaunchedEffect(actionVisibility.isIdle, actionVisibility.currentState) {
+        if (actionVisibility.isIdle && !actionVisibility.currentState) actionStatus = null
+    }
+
     val tabs = remember { listOf(StatusTab.All, StatusTab.Images, StatusTab.Videos, StatusTab.Saved) }
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { tabs.size })
 
@@ -198,7 +213,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
 
     Box(Modifier.fillMaxSize().background(palette.background)) {
         Column(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
-            Row(
+            if (hasPermission) Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.statusBars)
@@ -207,7 +222,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 SpringIconButton(
-                    icon = Icons.Outlined.Search,
+                    icon = if (searchExpanded) Icons.Outlined.Close else Icons.Outlined.Search,
                     description = "Search statuses",
                     palette = palette,
                     onClick = { searchExpanded = !searchExpanded }
@@ -221,7 +236,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                 )
             }
 
-            AnimatedVisibility(
+            if (hasPermission) AnimatedVisibility(
                 visible = searchExpanded,
                 enter = fadeIn(spring(stiffness = Spring.StiffnessMedium)) +
                     expandVertically(spring(dampingRatio = Spring.DampingRatioMediumBouncy)),
@@ -350,7 +365,14 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
             )
         }
 
-        selectedStatus?.let { status ->
+        AnimatedVisibility(
+            visibleState = actionVisibility,
+            enter = fadeIn(spring(stiffness = Spring.StiffnessMedium)) +
+                slideInVertically(initialOffsetY = { it }, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)),
+            exit = fadeOut() +
+                slideOutVertically(targetOffsetY = { it }, animationSpec = spring(stiffness = Spring.StiffnessMedium))
+        ) {
+            actionStatus?.let { status ->
             StatusActionsOverlay(
                 backdrop = backdrop,
                 palette = palette,
@@ -378,6 +400,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                     shareStatusFile(context, status.file, share = false)
                 }
             )
+            }
         }
     }
 }
