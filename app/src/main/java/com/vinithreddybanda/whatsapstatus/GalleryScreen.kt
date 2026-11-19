@@ -19,8 +19,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -28,6 +26,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -321,12 +320,16 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
 
         AnimatedVisibility(
             visibleState = actionVisibility,
-            enter = fadeIn(spring(stiffness = Spring.StiffnessMedium)) +
-                slideInVertically(initialOffsetY = { it }, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)) +
-                scaleIn(initialScale = 0.93f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)),
-            exit = fadeOut() +
-                slideOutVertically(targetOffsetY = { it }, animationSpec = spring(stiffness = Spring.StiffnessMedium)) +
-                scaleOut(targetScale = 0.97f)
+            enter = fadeIn(tween(170, easing = FastOutSlowInEasing)) +
+                slideInVertically(
+                    initialOffsetY = { it / 3 },
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                ),
+            exit = fadeOut(tween(140, easing = FastOutSlowInEasing)) +
+                slideOutVertically(
+                    targetOffsetY = { it / 5 },
+                    animationSpec = tween(220, easing = FastOutSlowInEasing)
+                )
         ) {
             actionStatus?.let { status ->
             StatusActionsOverlay(
@@ -457,7 +460,7 @@ private fun GlassBottomBar(
             val slotWidth = maxWidth / 4
             val indicatorPosition by animateFloatAsState(
                 targetValue = if (isDragging) dragPosition else settledPosition,
-                animationSpec = spring(dampingRatio = 0.58f, stiffness = 430f),
+                animationSpec = spring(dampingRatio = 0.86f, stiffness = 420f),
                 label = "liquidTabPosition"
             )
             val indicatorStretch by animateFloatAsState(
@@ -501,10 +504,10 @@ private fun GlassBottomBar(
                     val highlightedIndex = if (isDragging) dragPosition.roundToInt().coerceIn(0, 3) else selectedIndex
                     val selected = highlightedIndex == index
                     val iconScale by animateFloatAsState(
-                        targetValue = if (selected) 1.12f else 0.92f,
+                        targetValue = if (selected) 1.04f else 0.96f,
                         animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessMedium
+                            dampingRatio = 0.88f,
+                            stiffness = 520f
                         ),
                         label = "tabIconScale$index"
                     )
@@ -526,13 +529,13 @@ private fun GlassBottomBar(
                         AnimatedContent(
                             targetState = selected,
                             transitionSpec = {
-                                (androidx.compose.animation.fadeIn(tween(100)) +
+                                (androidx.compose.animation.fadeIn(tween(150, easing = FastOutSlowInEasing)) +
                                     androidx.compose.animation.scaleIn(
-                                        initialScale = 0.72f,
-                                        animationSpec = spring(dampingRatio = 0.58f)
+                                        initialScale = 0.94f,
+                                        animationSpec = tween(180, easing = FastOutSlowInEasing)
                                     )) togetherWith
-                                    (androidx.compose.animation.fadeOut(tween(75)) +
-                                        androidx.compose.animation.scaleOut(targetScale = 0.82f))
+                                    (androidx.compose.animation.fadeOut(tween(90)) +
+                                        androidx.compose.animation.scaleOut(targetScale = 0.97f))
                             },
                             label = "tabIconMorph$index"
                         ) { active ->
@@ -651,7 +654,7 @@ private fun LoadingGallery(palette: AppPalette) {
 @Composable
 private fun EmptyGallery(palette: AppPalette, message: String) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        BasicText(message, style = AppType.caption.copy(color = palette.muted, textAlign = TextAlign.Center))
+        BasicText(message, style = AppType.body.copy(color = palette.muted, textAlign = TextAlign.Center))
     }
 }
 
@@ -694,8 +697,8 @@ private fun SpringActionButton(text: String, palette: AppPalette, onClick: () ->
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.96f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        targetValue = if (pressed) 0.985f else 1f,
+        animationSpec = spring(dampingRatio = 0.9f, stiffness = 560f),
         label = "actionPress"
     )
     Box(
@@ -856,11 +859,8 @@ private fun ActionGlassButton(
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.90f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
+        targetValue = if (pressed) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = 0.9f, stiffness = 560f),
         label = "glassActionPress"
     )
     Column(
@@ -882,7 +882,7 @@ private fun ActionGlassButton(
         Spacer(Modifier.height(5.dp))
         BasicText(
             label,
-            style = AppType.body.copy(
+            style = AppType.caption.copy(
                 color = palette.foreground.copy(alpha = 0.78f),
                 fontWeight = FontWeight.Medium
             )
