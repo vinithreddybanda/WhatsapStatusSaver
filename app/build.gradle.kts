@@ -117,6 +117,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.material.icons.extended)
     implementation("io.github.kyant0:backdrop:1.0.6")
+    implementation("io.github.ardasoyturk.compose.icons:lucide:2.0.6")
     implementation(libs.coil.compose)
     implementation(libs.coil.video)
     implementation(libs.androidx.appcompat)
