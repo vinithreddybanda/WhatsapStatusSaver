@@ -374,11 +374,15 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                         }
                         else -> {
                             EmptyGallery(
-                                title = if (tab == StatusTab.Saved) "Nothing saved yet" else "No statuses found",
-                                subtitle = if (tab == StatusTab.Saved) {
-                                    "Save a story and it will appear here."
-                                } else {
-                                    "New WhatsApp stories will appear here automatically."
+                                title = when {
+                                    searchQuery.isNotBlank() -> "No matches found"
+                                    tab == StatusTab.Saved -> "Nothing saved yet"
+                                    else -> "No statuses found"
+                                },
+                                subtitle = when {
+                                    searchQuery.isNotBlank() -> "Try a different name or clear your search."
+                                    tab == StatusTab.Saved -> "Save a story and it will appear here."
+                                    else -> "New WhatsApp stories will appear here automatically."
                                 }
                             )
                         }
