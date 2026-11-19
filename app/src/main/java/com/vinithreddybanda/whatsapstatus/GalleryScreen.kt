@@ -300,8 +300,8 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                                 }
                             }
                         }
-                        (tab != StatusTab.Saved && viewModel.isFetching) ||
-                            (tab == StatusTab.Saved && viewModel.isSavedFetching) -> LoadingGallery(palette)
+                        (tab != StatusTab.Saved && viewModel.isFetching && !viewModel.hasCompletedInitialScan) ||
+                            (tab == StatusTab.Saved && viewModel.isSavedFetching && !viewModel.hasCompletedSavedLoad) -> LoadingGallery(palette)
                         else -> EmptyGallery(
                             palette = palette,
                             message = "No statuses found"
