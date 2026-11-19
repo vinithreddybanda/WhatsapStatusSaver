@@ -35,6 +35,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -204,30 +206,31 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
         selectedStatus = null
     }
 
-    Box(Modifier.fillMaxSize().background(palette.background)) {
-        Box(
-            Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .height(118.dp)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            palette.background,
-                            palette.background.copy(alpha = 0.94f),
-                            palette.background.copy(alpha = 0.54f),
-                            Color.Transparent
-                        )
-                    )
-                )
-        )
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(palette.background, palette.placeholder.copy(alpha = 0.22f), palette.background)))
+    ) {
         Column(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
             if (hasPermission) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .drawBackdrop(
+                            backdrop = backdrop,
+                            shape = { RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp) },
+                            effects = {
+                                blur(20.dp.toPx())
+                                lens(13.dp.toPx(), 18.dp.toPx())
+                            },
+                            highlight = { Highlight.Default.copy(alpha = 0.16f) },
+                            shadow = { null },
+                            onDrawSurface = {
+                                drawRect(Brush.verticalGradient(listOf(palette.glassTop.copy(alpha = 0.82f), palette.glassBottom.copy(alpha = 0.72f))))
+                            }
+                        )
                         .windowInsetsPadding(WindowInsets.statusBars)
-                        .padding(start = 22.dp, end = 22.dp, top = 2.dp, bottom = 12.dp),
+                        .padding(start = 22.dp, end = 22.dp, top = 8.dp, bottom = 13.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     BasicText(
@@ -321,15 +324,15 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
 
         AnimatedVisibility(
             visibleState = actionVisibility,
-            enter = fadeIn(tween(170, easing = FastOutSlowInEasing)) +
+            enter = fadeIn(tween(190, easing = FastOutSlowInEasing)) +
                 slideInVertically(
-                    initialOffsetY = { it / 3 },
-                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                    initialOffsetY = { it / 4 },
+                    animationSpec = spring(dampingRatio = 0.88f, stiffness = 360f)
                 ),
-            exit = fadeOut(tween(140, easing = FastOutSlowInEasing)) +
+            exit = fadeOut(tween(150, easing = FastOutSlowInEasing)) +
                 slideOutVertically(
-                    targetOffsetY = { it / 5 },
-                    animationSpec = tween(220, easing = FastOutSlowInEasing)
+                    targetOffsetY = { it / 6 },
+                    animationSpec = tween(190, easing = FastOutSlowInEasing)
                 )
         ) {
             actionStatus?.let { status ->
@@ -593,17 +596,31 @@ private fun StatusCard(
     val ratio = status.aspectRatio ?: if (status.isVideo) 0.5625f else 0.82f
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
+    val hovered by interaction.collectIsHoveredAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.985f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
-        label = "mediaPress"
+        targetValue = when {
+            pressed -> 0.985f
+            hovered -> 1.012f
+            else -> 1f
+        },
+        animationSpec = spring(dampingRatio = 0.82f, stiffness = 430f),
+        label = "mediaCardMotion"
     )
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                translationY = if (hovered) -3.dp.toPx() else 0f
+                shadowElevation = if (hovered) 12.dp.toPx() else 2.dp.toPx()
+                shape = RoundedCornerShape(18.dp)
+                clip = true
+            }
             .clip(RoundedCornerShape(18.dp))
             .background(palette.placeholder)
+            .hoverable(interaction)
             .combinedClickable(
                 interactionSource = interaction,
                 indication = null,
@@ -616,7 +633,7 @@ private fun StatusCard(
             painter = rememberAsyncImagePainter(model = request),
             contentDescription = if (status.isVideo) "Open video status" else "Open photo status",
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = scale; scaleY = scale }
+            modifier = Modifier.fillMaxSize()
         )
         if (status.isVideo) {
             Box(
@@ -739,7 +756,7 @@ private fun StatusActionsOverlay(
     val request = remember(status.path, status.timestamp) {
         ImageRequest.Builder(context)
             .data(status.file)
-            .size(180)
+            .size(720)
             .memoryCacheKey("${status.path}:${status.timestamp}")
             .crossfade(false)
             .apply { if (status.isVideo) decoderFactory(VideoFrameDecoder.Factory()) }
@@ -810,26 +827,64 @@ private fun StatusActionsOverlay(
                     .clip(CircleShape)
                     .background(palette.muted.copy(alpha = 0.48f))
             )
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(start = 14.dp, end = 12.dp, top = 13.dp, bottom = 15.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Box(
+                Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 18.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Box(
                     Modifier
-                        .size(46.dp)
-                        .clip(RoundedCornerShape(13.dp))
-                        .background(palette.placeholder.copy(alpha = 0.72f))
+                        .fillMaxWidth(0.72f)
+                        .widthIn(max = 260.dp)
+                        .aspectRatio((status.aspectRatio ?: if (status.isVideo) 0.72f else 0.82f).coerceIn(0.72f, 1.18f))
+                        .graphicsLayer {
+                            shadowElevation = 18.dp.toPx()
+                            shape = RoundedCornerShape(23.dp)
+                            clip = true
+                        }
+                        .clip(RoundedCornerShape(23.dp))
+                        .background(palette.placeholder)
                 ) {
                     Image(
                         painter = rememberAsyncImagePainter(request),
-                        contentDescription = null,
+                        contentDescription = if (status.isVideo) "Selected video preview" else "Selected photo preview",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
+                    if (status.isVideo) {
+                        Box(
+                            Modifier.align(Alignment.Center).size(46.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.42f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(R.drawable.lucide_ic_play),
+                                contentDescription = "Video",
+                                modifier = Modifier.size(26.dp),
+                                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White)
+                            )
+                        }
+                    }
                 }
-                Spacer(Modifier.width(9.dp))
+            }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp)
+                    .drawBackdrop(
+                        backdrop = backdrop,
+                        shape = { RoundedCornerShape(27.dp) },
+                        effects = {
+                            blur(18.dp.toPx())
+                            lens(15.dp.toPx(), 21.dp.toPx())
+                        },
+                        highlight = { Highlight.Default.copy(alpha = 0.17f) },
+                        shadow = { null },
+                        onDrawSurface = {
+                            drawRect(Brush.verticalGradient(listOf(palette.glassTop, palette.glassBottom)))
+                        }
+                    )
+                    .padding(horizontal = 5.dp, vertical = 5.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 ActionGlassButton(
                     modifier = Modifier.weight(1f),
                     icon = if (isSaved) R.drawable.lucide_ic_trash_2 else R.drawable.lucide_ic_bookmark,
@@ -847,11 +902,12 @@ private fun StatusActionsOverlay(
                 ActionGlassButton(
                     modifier = Modifier.weight(1f),
                     icon = R.drawable.lucide_ic_send,
-                    label = "WhatsApp",
+                    label = "Repost",
                     palette = palette,
                     onClick = onRepost
                 )
             }
+            Spacer(Modifier.height(12.dp))
         }
     }
 }
