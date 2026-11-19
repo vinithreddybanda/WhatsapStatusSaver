@@ -468,8 +468,16 @@ private fun GlassBottomBar(
     val haptics = LocalHapticFeedback.current
 
     var isDragging by remember { mutableStateOf(false) }
-    var dragPosition by remember(selectedIndex) { mutableStateOf(selectedIndex.toFloat()) }
+    var dragPosition by remember { mutableStateOf(selectedIndex.toFloat()) }
+    var settledPosition by remember { mutableStateOf(selectedIndex.toFloat()) }
     var dragStretch by remember { mutableStateOf(0f) }
+
+    LaunchedEffect(selectedIndex) {
+        if (!isDragging) {
+            settledPosition = selectedIndex.toFloat()
+            dragPosition = selectedIndex.toFloat()
+        }
+    }
 
     Box(
         modifier = modifier
@@ -511,6 +519,7 @@ private fun GlassBottomBar(
                         },
                         onDragEnd = {
                             val destination = dragPosition.roundToInt().coerceIn(0, 3)
+                            settledPosition = destination.toFloat()
                             isDragging = false
                             dragStretch = 0f
                             haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -525,7 +534,7 @@ private fun GlassBottomBar(
         ) {
             val slotWidth = maxWidth / 4
             val indicatorPosition by animateFloatAsState(
-                targetValue = if (isDragging) dragPosition else selectedIndex.toFloat(),
+                targetValue = if (isDragging) dragPosition else settledPosition,
                 animationSpec = spring(dampingRatio = 0.62f, stiffness = 420f),
                 label = "liquidTabPosition"
             )
@@ -580,6 +589,7 @@ private fun GlassBottomBar(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
                             ) {
+                                settledPosition = index.toFloat()
                                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 onSelect(index)
                             },
