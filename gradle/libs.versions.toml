@@ -13,6 +13,7 @@ coil = "2.7.0"
 lifecycleViewmodelCompose = "2.10.0"
 navigationCompose = "2.9.6"
 appcompat = "1.7.1"
+composeIcons = "1.1.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -34,6 +35,7 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 coil-video = { group = "io.coil-kt", name = "coil-video", version.ref = "coil" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+compose-icons-feather = { module = "br.com.devsrsouza.compose.icons:feather", version.ref = "composeIcons" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
