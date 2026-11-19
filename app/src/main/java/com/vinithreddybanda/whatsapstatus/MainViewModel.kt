@@ -37,6 +37,10 @@ class MainViewModel : ViewModel() {
         private set
     var isSavedFetching by mutableStateOf(false)
         private set
+    var hasCompletedInitialScan by mutableStateOf(false)
+        private set
+    var hasCompletedSavedLoad by mutableStateOf(false)
+        private set
     var selectedTab by mutableStateOf<StatusTab>(StatusTab.All)
         private set
 
@@ -94,6 +98,7 @@ class MainViewModel : ViewModel() {
             } catch (_: Exception) {
                 // Keep any batches already displayed. A later resume or manual refresh retries.
             } finally {
+                hasCompletedInitialScan = true
                 isFetching = false
             }
         }
@@ -147,6 +152,7 @@ class MainViewModel : ViewModel() {
             } catch (_: Exception) {
                 // Keep the saved tab usable if a storage provider temporarily fails.
             } finally {
+                hasCompletedSavedLoad = true
                 isSavedFetching = false
             }
         }
