@@ -923,15 +923,19 @@ private fun ActionGlassButton(
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.96f else 1f,
-        animationSpec = spring(dampingRatio = 0.9f, stiffness = 560f),
+        targetValue = if (pressed) 0.93f else 1f,
+        animationSpec = spring(dampingRatio = 0.82f, stiffness = 520f),
         label = "glassActionPress"
     )
     Column(
         modifier
-            .height(58.dp)
+            .height(64.dp)
             .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clip(RoundedCornerShape(15.dp))
+            .clip(RoundedCornerShape(22.dp))
+            .background(
+                if (pressed) palette.indicatorMiddle.copy(alpha = 0.72f) else Color.Transparent,
+                RoundedCornerShape(22.dp)
+            )
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)
             .padding(vertical = 7.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -939,16 +943,16 @@ private fun ActionGlassButton(
     ) {
         Image(
             painter = painterResource(icon),
-            contentDescription = null,
-            modifier = Modifier.size(19.dp),
+            contentDescription = label,
+            modifier = Modifier.size(23.dp),
             colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(palette.foreground)
         )
         Spacer(Modifier.height(5.dp))
         BasicText(
             label,
             style = AppType.caption.copy(
-                color = palette.foreground.copy(alpha = 0.78f),
-                fontWeight = FontWeight.Medium
+                color = palette.foreground.copy(alpha = 0.92f),
+                fontWeight = FontWeight.SemiBold
             )
         )
     }
