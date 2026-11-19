@@ -295,8 +295,6 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                 }
             }
         ) { innerPadding ->
-
-        ) { innerPadding ->
             if (!hasPermission) {
                 AccessRequiredContent(
                     modifier = Modifier
@@ -446,7 +444,7 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                     )
                 }
             ) {
-                HideModalStatusBar()
+
                 StatusActionsSheet(
                     status = status,
                     isSaved = viewModel.selectedTab == StatusTab.Saved,
