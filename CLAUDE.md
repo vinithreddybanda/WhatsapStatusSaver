@@ -2,14 +2,17 @@
 
 ## Android implementation rules
 
-- Keep the existing Kotlin, Jetpack Compose, Material 3, ViewModel and repository stack. Do not add dependencies unless they solve a concrete app problem.
+- Keep Kotlin, Jetpack Compose Foundation, ViewModel and repository architecture. Do not use Material 3 UI components or add component libraries unless they solve a concrete app problem.
+- Follow DESIGN_RULES.md for every UI change. The visual language is minimal, image-first liquid glass, not Material Design.
 - Keep directory enumeration, image metadata reads, copies and deletes off the main thread.
 - Show gallery content progressively. Do not block the screen on a full-directory scan or launch duplicate scans from recomposition and lifecycle callbacks.
 - Use lazy staggered grids with stable item keys and content types. Preserve intrinsic image ratios; do not force every media card to the same height.
 - Load downsampled thumbnails through Coil. Cache by file path plus modification time, avoid expensive video-frame work during fast scrolling, and do not crossfade every thumbnail.
 - Keep modal blur scoped to the background while a sheet is visible. Avoid permanent blur layers during normal scrolling.
 - Keep the status bar visible and transparent with theme-aware system icons; never hide it globally. Use edge-to-edge insets for tappable content, respect display cutouts and navigation gestures.
-- Prefer restrained state-driven Compose motion. Avoid permanent blur, backdrop sampling and per-frame effects in scrolling media grids; keep image requests downsampled and cached.
+- Keep screens image-first: no redundant headings, counters, metadata rows, category badges, button labels or helper paragraphs. Use icon-only controls with meaningful accessibility descriptions. Keep only copy required to complete a permission or error state.
+- Use interruptible spring motion for press feedback, tab selection and the action panel. Keep motion purposeful, consistent and short; respect the system animator scale.
+- Use Kyant Backdrop 1.0.6 only on the floating dock and transient action panel. Never capture or blur every media tile, and never run backdrop effects across the scrolling grid.
 - Keep storage access user initiated. Explain why broad access is required before opening Android's special-access screen.
 - Use case-insensitive file extensions and grant read URI permissions when opening or sharing files.
 - Keep UI state in the ViewModel and filesystem operations in the repository.
