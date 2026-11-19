@@ -224,9 +224,12 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
             ) {
                 SpringIconButton(
                     icon = if (searchExpanded) Icons.Outlined.Close else Icons.Outlined.Search,
-                    description = "Search statuses",
+                    description = if (searchExpanded) "Close search" else "Search statuses",
                     palette = palette,
-                    onClick = { searchExpanded = !searchExpanded }
+                    onClick = {
+                        if (searchExpanded) searchQuery = ""
+                        searchExpanded = !searchExpanded
+                    }
                 )
                 Spacer(Modifier.width(6.dp))
                 SpringIconButton(
