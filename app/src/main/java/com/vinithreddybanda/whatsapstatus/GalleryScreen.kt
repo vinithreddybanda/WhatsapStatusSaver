@@ -213,31 +213,11 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
     ) {
         Column(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
             if (hasPermission) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .drawBackdrop(
-                            backdrop = backdrop,
-                            shape = { RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp) },
-                            effects = {
-                                blur(20.dp.toPx())
-                                lens(13.dp.toPx(), 18.dp.toPx())
-                            },
-                            highlight = { Highlight.Default.copy(alpha = 0.16f) },
-                            shadow = { null },
-                            onDrawSurface = {
-                                drawRect(Brush.verticalGradient(listOf(palette.glassTop.copy(alpha = 0.82f), palette.glassBottom.copy(alpha = 0.72f))))
-                            }
-                        )
-                        .windowInsetsPadding(WindowInsets.statusBars)
-                        .padding(start = 22.dp, end = 22.dp, top = 8.dp, bottom = 13.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    BasicText(
-                        "Statuses",
-                        style = AppType.display.copy(color = palette.foreground)
+                Spacer(
+                    Modifier.height(
+                        WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 58.dp
                     )
-                }
+                )
             }
 
             if (!hasPermission) {
@@ -309,6 +289,35 @@ fun GalleryScreen(viewModel: MainViewModel = viewModel()) {
                         )
                     }
                 }
+            }
+        }
+
+        if (hasPermission) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .drawBackdrop(
+                        backdrop = backdrop,
+                        shape = { RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp) },
+                        effects = {
+                            blur(20.dp.toPx())
+                            lens(13.dp.toPx(), 18.dp.toPx())
+                        },
+                        highlight = { Highlight.Default.copy(alpha = 0.16f) },
+                        shadow = { null },
+                        onDrawSurface = {
+                            drawRect(Brush.verticalGradient(listOf(palette.glassTop.copy(alpha = 0.82f), palette.glassBottom.copy(alpha = 0.72f))))
+                        }
+                    )
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(start = 22.dp, end = 22.dp, top = 8.dp, bottom = 13.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BasicText(
+                    "Statuses",
+                    style = AppType.display.copy(color = palette.foreground)
+                )
             }
         }
 
