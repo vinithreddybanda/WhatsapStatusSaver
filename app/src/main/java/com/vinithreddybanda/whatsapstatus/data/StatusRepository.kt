@@ -4,7 +4,9 @@ import android.graphics.BitmapFactory
 import android.os.Environment
 import com.vinithreddybanda.whatsapstatus.model.Status
 import java.io.File
+import java.io.IOException
 import java.util.Locale
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -92,6 +94,7 @@ class StatusRepository {
                     baseName + "-" + suffix + "." + extension
                 }
                 destination = File(savedPath, uniqueName)
+                if (destination.exists()) return@withContext true
 
                 var collision = 2
                 while (destination.exists()) {
@@ -107,7 +110,11 @@ class StatusRepository {
 
             status.file.copyTo(destination, overwrite = false)
             true
-        } catch (_: Exception) {
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: IOException) {
+            false
+        } catch (_: SecurityException) {
             false
         }
     }
