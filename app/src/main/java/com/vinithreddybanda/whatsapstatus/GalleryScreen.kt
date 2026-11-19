@@ -554,7 +554,7 @@ private fun GlassBottomBar(
                                 painter = painterResource(if (active) filledIcons[index] else icon),
                                 contentDescription = descriptions[index],
                                 modifier = Modifier
-                                    .size(21.dp)
+                                    .size(23.dp)
                                     .graphicsLayer {
                                         scaleX = iconScale
                                         scaleY = iconScale
@@ -833,8 +833,8 @@ private fun StatusActionsOverlay(
             ) {
                 Box(
                     Modifier
-                        .fillMaxWidth(0.72f)
                         .widthIn(max = 260.dp)
+                        .fillMaxWidth(0.72f)
                         .aspectRatio((status.aspectRatio ?: if (status.isVideo) 0.72f else 0.82f).coerceIn(0.72f, 1.18f))
                         .graphicsLayer {
                             shadowElevation = 18.dp.toPx()
