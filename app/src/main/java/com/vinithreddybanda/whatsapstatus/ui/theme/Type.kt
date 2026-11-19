@@ -2,18 +2,16 @@ package com.vinithreddybanda.whatsapstatus.ui.theme
 
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 object AppType {
     val display = TextStyle(
-        fontFamily = FontFamily.Serif,
-        fontWeight = FontWeight.Bold,
-        fontStyle = FontStyle.Italic,
-        fontSize = 31.sp,
-        lineHeight = 36.sp,
-        letterSpacing = (-0.7).sp
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 29.sp,
+        lineHeight = 35.sp,
+        letterSpacing = (-0.55).sp
     )
     val body = TextStyle(
         fontFamily = FontFamily.SansSerif,
