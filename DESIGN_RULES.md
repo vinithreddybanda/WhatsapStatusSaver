@@ -1,53 +1,42 @@
-# Design rules
+# Design system
 
-## Product character
-WhatsApStatusSaver is a private, image-first media utility. The media is the interface. Chrome should disappear until the user needs it.
+## Direction
+An image-first private gallery with an editorial, tactile visual identity. The photographs are the content; interface chrome stays quiet. Use a warm paper palette in light mode and deep graphite in dark mode. Both themes share identical contrast hierarchy, spacing, geometry and motion.
 
-## Visual anchor
-- Primary: Apple-style liquid glass, adapted to Android edge-to-edge behavior.
-- Secondary: quiet editorial minimalism. Monochrome surfaces, one restrained lime accent, generous image area.
-- Dark mode: near-black green charcoal with pale foreground and soft lime.
-- Light mode: warm grey-white with deep charcoal foreground and muted olive accent.
-- Typography: system sans, three roles only: 24sp display, 14sp body, 12sp caption.
-- Shapes: 15dp media corners, capsule dock, 18dp search field, 30dp action panel.
+## Materials
+- One sampled glass layer at a time. The dock samples the moving gallery; the action state blurs the gallery once and places a denser translucent sheet above it.
+- No decorative outlines, bright rims, repeated borders or glass-on-glass stacks.
+- Glass is made from backdrop blur, low-opacity tonal tint, a soft vertical light gradient and a restrained optical highlight. It must never read as a frosted rectangle with a white stroke.
+- Dark glass uses charcoal translucency, not white overlays. Keep edge contrast low so the surface melts into the background.
+- On Android 12, use the backdrop blur plus gradient/highlight approximation. Do not claim shader refraction on API 31.
 
-## Hard bans
-- No Material 3 widgets, app bars, cards, chips, buttons, navigation bars, bottom sheets or progress indicators.
-- No decorative section labels, counts, timestamps under thumbnails, VIDEO badges, redundant subtitles, feature copy or explanatory paragraphs.
-- No visible text under bottom navigation icons.
-- No button labels in the media action panel. Icon-only actions must retain accessibility descriptions.
-- No borders around media tiles, gradients, neon glow, shadows on every element, or glass on every surface.
-- No animation loops, shimmer loops, heavy list stagger or per-item entrance animations.
+## Type
+- Editorial display: bold italic serif for the main screen title and a few high-value moments.
+- Functional copy: neutral sans serif with compact line-height and consistent weight.
+- No decorative overlines, fake metadata or redundant labels.
 
-## Liquid-glass surfaces
-- Use io.github.kyant0:backdrop:1.0.6.
-- True backdrop sampling is reserved for the floating navigation dock and transient media action panel.
-- The media grid must remain an ordinary cached image layer. Never put blur, lens or backdrop sampling on individual thumbnails or the entire scrolling grid.
-- Use a subtle translucent tint, a thin highlight and restrained blur/refraction. If the effect is unsupported on an OS version, retain a translucent surface fallback.
-- Keep the dock compact, floating, icon-only and consistent across tabs.
+## Icons
+- Lucide outline vectors only. No Material icons, emoji glyphs, mixed icon families or filled generic system symbols.
+- Keep optical size between 18–22dp and use one consistent stroke language.
 
-## Interaction and motion
-- Press feedback: scale down slightly with an interruptible medium-bouncy spring.
-- Tab selection: a single capsule glides with a low-stiffness spring; the pager follows the selected tab.
-- Media action panel: enters from the bottom, keeps the selected media visible, and offers only Save/Delete, Share and WhatsApp.
-- A media tap opens it; a long press opens its action panel.
-- Search is hidden until requested and expands into a single compact field.
-- Do not animate static content for decoration. Do not delay actions while an animation runs.
-- Respect the system animator-duration scale and avoid large movement when reduced motion is enabled.
+## Motion
+- Motion should explain state, not decorate it.
+- Use interruptible springs with restrained damping for the dock indicator and gesture-following surfaces.
+- Use short eased fades and vertical travel for modal transitions. No scale-pop on the whole screen, no rubbery bounce on long press, and no repeated shimmer loops.
+- Press feedback stays inside the clipped media surface so it never exposes a bright underlay edge.
+- Prefer draw-phase transforms for continuous motion and avoid relayout on every animation frame.
+- Keep gestures direct: swipe between tabs, drag the dock indicator, pull the action sheet down to dismiss.
 
-## Screen rules
-- Gallery: full-bleed staggered media grid with natural aspect ratios. No captions, times, labels or per-tile menu buttons.
-- Navigation: four equal icon-only destinations: All, Photos, Videos, Saved. Accessibility descriptions carry the names.
-- Search: one field, no extra search page or filter chips.
-- Permission: one concise explanation and one clear action. No repeated copy.
-- Empty/loading: quiet and compact. Skeleton blocks match the grid; no spinner or motivational text.
-- Action panel: selected thumbnail plus three icon-only actions. No title, timestamp, ACTIONS heading or close button.
+## Screen
+- Full-bleed staggered media grid with natural image ratios, cached/downsampled thumbnails and stable keys.
+- Compact floating icon-only navigation for All, Photos, Videos and Saved.
+- A feathered top fade blends the status-bar/cutout region into the gallery rather than creating a hard toolbar edge.
+- The action sheet retains the selected thumbnail and the three core actions.
+- Search and reload controls stay out of the primary surface.
+- Local device storage only. No remote media service or backend.
 
-## Engineering constraints
-- Keep storage scans, image bounds reads and file operations off the main thread.
-- Keep Coil requests cached, downsampled and without thumbnail crossfades.
-- Preserve stable lazy-grid keys and intrinsic media ratios.
-- Use shared design tokens from Color.kt, Type.kt and Theme.kt.
-- Keep status bar transparent and visible; respect navigation and display cutout insets.
-- Validate debug and F-Droid builds plus unit tests before claiming completion.
-- Physical-device testing is required for actual frame pacing, gestures, permission handoff and OEM system-bar behavior.
+## Accessibility and performance
+- Every icon-only action has a meaningful content description.
+- Respect system light/dark icon contrast and edge-to-edge insets.
+- Avoid unnecessary recomposition, unbounded blur and per-thumbnail shader work.
+- Validate unit tests, GitHub debug APK and F-Droid release APK. Device testing is still required for OEM gesture behavior and frame pacing.
